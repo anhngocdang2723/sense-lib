@@ -1,0 +1,879 @@
+Enum "access_log_action" {
+  "view"
+  "download"
+  "print"
+  "share"
+  "comment"
+  "rate"
+}
+
+Enum "accesslogaction" {
+  "VIEW"
+  "DOWNLOAD"
+  "PRINT"
+  "SHARE"
+  "COMMENT"
+  "RATE"
+}
+
+Enum "author_status" {
+  "active"
+  "inactive"
+}
+
+Enum "authorstatus" {
+  "ACTIVE"
+  "INACTIVE"
+}
+
+Enum "category_status" {
+  "active"
+  "inactive"
+}
+
+Enum "categorystatus" {
+  "ACTIVE"
+  "INACTIVE"
+}
+
+Enum "comment_status" {
+  "active"
+  "hidden"
+  "deleted"
+}
+
+Enum "commentstatus" {
+  "ACTIVE"
+  "HIDDEN"
+  "DELETED"
+}
+
+Enum "conflict_resolution" {
+  "latest"
+  "merge"
+  "manual"
+}
+
+Enum "conflict_status" {
+  "pending"
+  "resolved"
+}
+
+Enum "conflictresolution" {
+  "LATEST"
+  "MERGE"
+  "MANUAL"
+}
+
+Enum "conflictstatus" {
+  "PENDING"
+  "RESOLVED"
+}
+
+Enum "document_access_level" {
+  "public"
+  "restricted"
+  "private"
+}
+
+Enum "document_access_status" {
+  "active"
+  "expired"
+  "revoked"
+}
+
+Enum "document_audio_status" {
+  "pending"
+  "processing"
+  "completed"
+  "failed"
+}
+
+Enum "document_status" {
+  "available"
+  "restricted"
+  "maintenance"
+  "pending"
+  "approved"
+  "rejected"
+}
+
+Enum "documentaccesslevel" {
+  "PUBLIC"
+  "RESTRICTED"
+  "PRIVATE"
+}
+
+Enum "documentaccessstatus" {
+  "ACTIVE"
+  "EXPIRED"
+  "REVOKED"
+}
+
+Enum "documentaudiostatus" {
+  "PENDING"
+  "PROCESSING"
+  "COMPLETED"
+  "FAILED"
+}
+
+Enum "documentstatus" {
+  "AVAILABLE"
+  "RESTRICTED"
+  "MAINTENANCE"
+  "PENDING"
+  "APPROVED"
+  "REJECTED"
+}
+
+Enum "feedback_status" {
+  "pending"
+  "in_progress"
+  "resolved"
+  "closed"
+}
+
+Enum "feedbackstatus" {
+  "PENDING"
+  "IN_PROGRESS"
+  "RESOLVED"
+  "CLOSED"
+}
+
+Enum "notification_related_type" {
+  "comment"
+  "document"
+  "rating"
+  "access"
+  "system"
+  "feedback"
+}
+
+Enum "notification_type" {
+  "system"
+  "comment"
+  "rating"
+  "document"
+  "access"
+}
+
+Enum "notificationrelatedtype" {
+  "COMMENT"
+  "DOCUMENT"
+  "RATING"
+  "ACCESS"
+  "SYSTEM"
+  "FEEDBACK"
+}
+
+Enum "notificationtype" {
+  "SYSTEM"
+  "COMMENT"
+  "RATING"
+  "DOCUMENT"
+  "ACCESS"
+}
+
+Enum "publisher_status" {
+  "active"
+  "inactive"
+}
+
+Enum "publisherstatus" {
+  "ACTIVE"
+  "INACTIVE"
+}
+
+Enum "reading_progress_status" {
+  "reading"
+  "completed"
+  "paused"
+}
+
+Enum "reading_progress_type" {
+  "page"
+  "percentage"
+  "position"
+  "time"
+  "section"
+}
+
+Enum "readingprogressstatus" {
+  "READING"
+  "COMPLETED"
+  "PAUSED"
+}
+
+Enum "readingprogresstype" {
+  "PAGE"
+  "PERCENTAGE"
+  "POSITION"
+  "TIME"
+  "SECTION"
+}
+
+Enum "setting_type" {
+  "string"
+  "integer"
+  "boolean"
+  "json"
+  "array"
+  "float"
+}
+
+Enum "settingtype" {
+  "STRING"
+  "INTEGER"
+  "BOOLEAN"
+  "JSON"
+  "ARRAY"
+  "FLOAT"
+}
+
+Enum "static_page_status" {
+  "draft"
+  "published"
+  "archived"
+}
+
+Enum "tag_status" {
+  "active"
+  "inactive"
+}
+
+Enum "tagstatus" {
+  "ACTIVE"
+  "INACTIVE"
+}
+
+Enum "user_role" {
+  "admin"
+  "member"
+}
+
+Enum "userrole" {
+  "ADMIN"
+  "MEMBER"
+}
+
+Enum "voice_gender" {
+  "male"
+  "female"
+  "neutral"
+}
+
+Enum "voicegender" {
+  "MALE"
+  "FEMALE"
+  "NEUTRAL"
+}
+
+Enum "website_link_position" {
+  "header"
+  "footer"
+  "sidebar"
+  "main_menu"
+  "quick_links"
+}
+
+Enum "website_link_status" {
+  "active"
+  "inactive"
+}
+
+Enum "websitelinkposition" {
+  "HEADER"
+  "FOOTER"
+  "SIDEBAR"
+  "MAIN_MENU"
+  "QUICK_LINKS"
+}
+
+Enum "websitelinkstatus" {
+  "ACTIVE"
+  "INACTIVE"
+}
+
+Table "users" {
+  "email" varchar [unique, not null]
+  "username" varchar [unique, not null]
+  "hashed_password" varchar [not null]
+  "full_name" varchar [not null]
+  "role" userrole
+  "is_active" bool
+  "is_verified" bool
+  "verification_code" varchar
+  "verification_code_expires" timestamptz
+  "failed_login_attempts" int4
+  "lockout_until" timestamptz
+  "phone_number" varchar
+  "address" varchar
+  "avatar_url" varchar
+  "last_login" timestamptz
+  "id" uuid [pk, not null]
+  "created_at" timestamptz [not null, default: `now()`]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    id [type: btree, name: "ix_users_id"]
+  }
+}
+
+Table "publishers" {
+  "name" varchar [unique, not null]
+  "description" text
+  "website" varchar
+  "email" varchar
+  "phone" varchar
+  "address" text
+  "status" publisherstatus
+  "id" uuid [pk, not null]
+  "created_at" timestamptz [not null, default: `now()`]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    id [type: btree, name: "ix_publishers_id"]
+    name [type: btree, name: "ix_publishers_name"]
+  }
+}
+
+Table "authors" {
+  "name" varchar [unique, not null]
+  "bio" text
+  "email" varchar
+  "website" varchar
+  "birth_date" date
+  "death_date" date
+  "nationality" varchar
+  "status" authorstatus
+  "id" uuid [pk, not null]
+  "created_at" timestamptz [not null, default: `now()`]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    id [type: btree, name: "ix_authors_id"]
+    name [type: btree, name: "ix_authors_name"]
+  }
+}
+
+Table "categories" {
+  "name" varchar [not null]
+  "description" text
+  "parent_id" uuid
+  "slug" varchar [unique]
+  "icon" varchar
+  "status" categorystatus
+  "id" uuid [pk, not null]
+  "created_at" timestamptz [not null, default: `now()`]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    id [type: btree, name: "ix_categories_id"]
+    name [type: btree, name: "ix_categories_name"]
+  }
+}
+
+Table "tags" {
+  "name" varchar [unique, not null]
+  "description" text
+  "status" tagstatus
+  "id" uuid [pk, not null]
+  "created_at" timestamptz [not null, default: `now()`]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    id [type: btree, name: "ix_tags_id"]
+  }
+}
+
+Table "slideshows" {
+  "title" varchar [not null]
+  "description" text
+  "image_url" varchar [not null]
+  "link_url" varchar
+  "display_order" int4
+  "status" categorystatus
+  "id" uuid [pk, not null]
+  "created_at" timestamptz [not null, default: `now()`]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    id [type: btree, name: "ix_slideshows_id"]
+  }
+}
+
+Table "website_links" {
+  "title" varchar [not null]
+  "url" varchar [not null]
+  "description" text
+  "position" websitelinkposition [not null]
+  "display_order" int4
+  "status" websitelinkstatus
+  "id" uuid [pk, not null]
+  "created_at" timestamptz [not null, default: `now()`]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    id [type: btree, name: "ix_website_links_id"]
+  }
+}
+
+Table "system_settings" {
+  "key" varchar [unique, not null]
+  "value" text [not null]
+  "description" text
+  "type" settingtype
+  "id" uuid [pk, not null]
+  "created_at" timestamptz [not null, default: `now()`]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    id [type: btree, name: "ix_system_settings_id"]
+  }
+}
+
+Table "file_types" {
+  "extension" varchar [unique, not null]
+  "mime_type" varchar [not null]
+  "description" text
+  "is_allowed" bool
+  "max_size_mb" int4
+  "id" uuid [pk, not null]
+  "created_at" timestamptz [not null, default: `now()`]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    id [type: btree, name: "ix_file_types_id"]
+  }
+}
+
+Table "languages" {
+  "code" varchar [unique, not null]
+  "name" varchar [not null]
+  "native_name" varchar
+  "is_active" bool
+  "id" uuid [not null]
+  "created_at" timestamptz [not null, default: `now()`]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    (code, id) [type: btree, name: "languages_pkey"]
+    id [type: btree, name: "ix_languages_id"]
+  }
+}
+
+Table "documents" {
+  "title" varchar [not null]
+  "description" text
+  "publisher_id" uuid
+  "publication_year" int4
+  "isbn" varchar [unique]
+  "file_name" varchar [not null]
+  "file_hash" varchar [unique]
+  "file_type" uuid [not null]
+  "file_size" int4 [not null]
+  "status" documentstatus
+  "category_id" uuid [not null]
+  "access_level" documentaccesslevel
+  "language" varchar
+  "version" varchar
+  "download_count" int4
+  "view_count" int4
+  "is_featured" bool
+  "ai_summary" text
+  "added_by" uuid [not null]
+  "id" uuid [pk, not null]
+  "created_at" timestamptz [not null, default: `now()`]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    file_name [type: btree, name: "ix_documents_file_name"]
+    id [type: btree, name: "ix_documents_id"]
+    title [type: btree, name: "ix_documents_title"]
+  }
+}
+
+Table "user_sessions" {
+  "user_id" uuid [not null]
+  "token" varchar [unique, not null]
+  "ip_address" varchar
+  "user_agent" varchar
+  "created_at" timestamptz [default: `now()`]
+  "expires_at" timestamptz [not null]
+  "id" uuid [pk, not null]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    id [type: btree, name: "ix_user_sessions_id"]
+  }
+}
+
+Table "notifications" {
+  "user_id" uuid [not null]
+  "type" notificationtype [not null]
+  "content" text [not null]
+  "related_id" uuid
+  "related_type" notificationrelatedtype
+  "is_read" bool
+  "created_at" timestamptz [default: `now()`]
+  "id" uuid [pk, not null]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    id [type: btree, name: "ix_notifications_id"]
+  }
+}
+
+Table "feedback" {
+  "user_id" uuid
+  "name" varchar [not null]
+  "email" varchar [not null]
+  "subject" varchar [not null]
+  "message" text [not null]
+  "status" feedbackstatus
+  "response" text
+  "id" uuid [pk, not null]
+  "created_at" timestamptz [not null, default: `now()`]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    id [type: btree, name: "ix_feedback_id"]
+  }
+}
+
+Table "voices" {
+  "id" varchar [pk, not null]
+  "name" varchar [not null]
+  "language" varchar [not null]
+  "gender" voicegender
+  "provider" varchar [not null]
+  "is_active" bool
+  "created_at" timestamptz [not null, default: `now()`]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    language [type: btree, name: "idx_voices_language"]
+    provider [type: btree, name: "idx_voices_provider"]
+  }
+}
+
+Table "document_author" {
+  "document_id" uuid [not null]
+  "author_id" uuid [not null]
+  "created_at" timestamptz
+  "id" uuid [pk, not null]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    (document_id, author_id) [type: btree, name: "uq_document_author"]
+    id [type: btree, name: "ix_document_author_id"]
+  }
+}
+
+Table "document_tag" {
+  "document_id" uuid [not null]
+  "tag_id" uuid [not null]
+  "id" uuid [pk, not null]
+  "created_at" timestamptz [not null, default: `now()`]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    (document_id, tag_id) [type: btree, name: "uq_document_tag"]
+    id [type: btree, name: "ix_document_tag_id"]
+  }
+}
+
+Table "document_access" {
+  "document_id" uuid [not null]
+  "user_id" uuid [not null]
+  "granted_at" timestamptz [default: `now()`]
+  "expiry_date" timestamptz
+  "status" documentaccessstatus
+  "access_count" int4
+  "last_accessed" timestamptz
+  "extension_count" int4
+  "revoked_at" timestamptz
+  "id" uuid [pk, not null]
+  "created_at" timestamptz [not null, default: `now()`]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    id [type: btree, name: "ix_document_access_id"]
+  }
+}
+
+Table "comments" {
+  "document_id" uuid [not null]
+  "user_id" uuid [not null]
+  "parent_id" uuid
+  "content" text [not null]
+  "status" commentstatus
+  "is_edited" bool
+  "id" uuid [pk, not null]
+  "created_at" timestamptz [not null, default: `now()`]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    id [type: btree, name: "ix_comments_id"]
+  }
+}
+
+Table "ratings" {
+  "document_id" uuid [not null]
+  "user_id" uuid [not null]
+  "rating" int4 [not null]
+  "comment" text
+  "id" uuid [pk, not null]
+  "created_at" timestamptz [not null, default: `now()`]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    (document_id, user_id) [type: btree, name: "uq_document_user_rating"]
+    id [type: btree, name: "ix_ratings_id"]
+  }
+}
+
+Table "favorites" {
+  "user_id" uuid [not null]
+  "document_id" uuid [not null]
+  "created_at" timestamptz [default: `now()`]
+  "id" uuid [pk, not null]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    (user_id, document_id) [type: btree, name: "uq_user_document_favorite"]
+    id [type: btree, name: "ix_favorites_id"]
+  }
+}
+
+Table "document_chapters" {
+  "document_id" uuid [not null]
+  "title" varchar [not null]
+  "chapter_number" int4 [not null]
+  "start_position" float8 [note: 'Starting position (e.g., percentage or page)']
+  "end_position" float8 [note: 'Ending position']
+  "ai_summary" text [note: 'AI-generated chapter summary']
+  "id" uuid [pk, not null]
+  "created_at" timestamptz [not null, default: `now()`]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    (document_id, chapter_number) [type: btree, name: "uq_document_chapter_number"]
+    document_id [type: btree, name: "idx_document_chapters_document"]
+    (document_id, chapter_number) [type: btree, name: "idx_document_chapters_number"]
+    id [type: btree, name: "ix_document_chapters_id"]
+  }
+}
+
+Table "access_logs" {
+  "access_id" uuid
+  "user_id" uuid [not null]
+  "document_id" uuid [not null]
+  "action" accesslogaction [not null]
+  "timestamp" timestamptz [default: `now()`]
+  "ip_address" varchar
+  "user_agent" varchar
+  "session_id" uuid
+  "id" uuid [pk, not null]
+  "created_at" timestamptz [not null, default: `now()`]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    document_id [type: btree, name: "idx_access_logs_document"]
+    timestamp [type: btree, name: "idx_access_logs_timestamp"]
+    user_id [type: btree, name: "idx_access_logs_user"]
+    (user_id, document_id) [type: btree, name: "idx_access_logs_user_document"]
+    id [type: btree, name: "ix_access_logs_id"]
+  }
+}
+
+Table "document_sections" {
+  "document_id" uuid [not null]
+  "chapter_id" uuid
+  "title" varchar [not null]
+  "section_number" int4 [not null]
+  "start_position" float8
+  "end_position" float8
+  "id" uuid [pk, not null]
+  "created_at" timestamptz [not null, default: `now()`]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    (document_id, chapter_id, section_number) [type: btree, name: "uq_document_section_number"]
+    chapter_id [type: btree, name: "idx_document_sections_chapter"]
+    document_id [type: btree, name: "idx_document_sections_document"]
+    id [type: btree, name: "ix_document_sections_id"]
+  }
+}
+
+Table "document_audio" {
+  "document_id" uuid [not null]
+  "chapter_id" uuid
+  "section_id" uuid
+  "language" varchar [not null]
+  "voice_id" varchar [not null]
+  "file_url" varchar [not null]
+  "duration_seconds" int4 [not null]
+  "file_size" int4 [not null]
+  "status" documentaudiostatus
+  "id" uuid [pk, not null]
+  "created_at" timestamptz [not null, default: `now()`]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    chapter_id [type: btree, name: "idx_document_audio_chapter"]
+    (document_id, chapter_id, section_id) [type: btree, name: "idx_document_audio_doc_chapter_section"]
+    document_id [type: btree, name: "idx_document_audio_document"]
+    language [type: btree, name: "idx_document_audio_language"]
+    section_id [type: btree, name: "idx_document_audio_section"]
+    id [type: btree, name: "ix_document_audio_id"]
+  }
+}
+
+Table "document_qa" {
+  "document_id" uuid [not null]
+  "chapter_id" uuid
+  "section_id" uuid
+  "question" text [not null]
+  "answer" text [not null]
+  "context" text
+  "language" varchar [not null]
+  "usage_count" int4
+  "last_used" timestamptz
+  "id" uuid [pk, not null]
+  "created_at" timestamptz [not null, default: `now()`]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    id [type: btree, name: "ix_document_qa_id"]
+  }
+}
+
+Table "reading_progress" {
+  "user_id" uuid [not null]
+  "document_id" uuid [not null]
+  "chapter_id" uuid
+  "progress_type" readingprogresstype [not null]
+  "progress_value" float8 [not null]
+  "status" readingprogressstatus
+  "last_read_at" timestamptz [default: `now()`]
+  "total_read_time" int4 [note: 'Total reading time in seconds']
+  "session_read_time" int4 [note: 'Reading time for current session in seconds']
+  "last_position" jsonb [note: 'Additional position data like scroll position, zoom level, etc.']
+  "device_id" varchar [note: 'Identifier for the device updating progress']
+  "session_id" uuid
+  "synced_at" timestamptz [note: 'Last sync time for offline progress']
+  "ai_recommendation_trigger" bool [note: 'Flag for AI recommendation triggers']
+  "section_id" uuid
+  "conflict_resolution" conflictresolution
+  "last_sync_device" varchar
+  "sync_version" int4
+  "conflict_status" conflictstatus
+  "merged_progress" jsonb [note: 'Stores progress data from other devices when merging']
+  "id" uuid [pk, not null]
+  "created_at" timestamptz [not null, default: `now()`]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    (user_id, document_id, chapter_id, section_id) [type: btree, name: "uq_user_document_chapter_section_progress"]
+    conflict_status [type: btree, name: "idx_reading_progress_conflict"]
+    document_id [type: btree, name: "idx_reading_progress_document"]
+    (document_id, chapter_id) [type: btree, name: "idx_reading_progress_document_chapter"]
+    last_read_at [type: btree, name: "idx_reading_progress_last_read"]
+    section_id [type: btree, name: "idx_reading_progress_section"]
+    synced_at [type: btree, name: "idx_reading_progress_sync"]
+    sync_version [type: btree, name: "idx_reading_progress_sync_version"]
+    user_id [type: btree, name: "idx_reading_progress_user"]
+    (user_id, document_id, section_id) [type: btree, name: "idx_reading_progress_user_document_section"]
+    (user_id, last_read_at) [type: btree, name: "idx_reading_progress_user_last_read"]
+    id [type: btree, name: "ix_reading_progress_id"]
+  }
+}
+
+Ref "access_logs_access_id_fkey":"document_access"."id" < "access_logs"."access_id"
+
+Ref "access_logs_document_id_fkey":"documents"."id" < "access_logs"."document_id"
+
+Ref "access_logs_session_id_fkey":"user_sessions"."id" < "access_logs"."session_id"
+
+Ref "access_logs_user_id_fkey":"users"."id" < "access_logs"."user_id"
+
+Ref "categories_parent_id_fkey":"categories"."id" < "categories"."parent_id"
+
+Ref "comments_document_id_fkey":"documents"."id" < "comments"."document_id"
+
+Ref "comments_parent_id_fkey":"comments"."id" < "comments"."parent_id"
+
+Ref "comments_user_id_fkey":"users"."id" < "comments"."user_id"
+
+Ref "document_access_document_id_fkey":"documents"."id" < "document_access"."document_id"
+
+Ref "document_access_user_id_fkey":"users"."id" < "document_access"."user_id"
+
+Ref "document_audio_chapter_id_fkey":"document_chapters"."id" < "document_audio"."chapter_id"
+
+Ref "document_audio_document_id_fkey":"documents"."id" < "document_audio"."document_id"
+
+Ref "document_audio_language_fkey":"languages"."code" < "document_audio"."language"
+
+Ref "document_audio_section_id_fkey":"document_sections"."id" < "document_audio"."section_id"
+
+Ref "document_audio_voice_id_fkey":"voices"."id" < "document_audio"."voice_id"
+
+Ref "document_author_author_id_fkey":"authors"."id" < "document_author"."author_id"
+
+Ref "document_author_document_id_fkey":"documents"."id" < "document_author"."document_id"
+
+Ref "document_chapters_document_id_fkey":"documents"."id" < "document_chapters"."document_id"
+
+Ref "document_qa_chapter_id_fkey":"document_chapters"."id" < "document_qa"."chapter_id"
+
+Ref "document_qa_document_id_fkey":"documents"."id" < "document_qa"."document_id"
+
+Ref "document_qa_language_fkey":"languages"."code" < "document_qa"."language"
+
+Ref "document_qa_section_id_fkey":"document_sections"."id" < "document_qa"."section_id"
+
+Ref "document_sections_chapter_id_fkey":"document_chapters"."id" < "document_sections"."chapter_id"
+
+Ref "document_sections_document_id_fkey":"documents"."id" < "document_sections"."document_id"
+
+Ref "document_tag_document_id_fkey":"documents"."id" < "document_tag"."document_id"
+
+Ref "document_tag_tag_id_fkey":"tags"."id" < "document_tag"."tag_id"
+
+Ref "documents_added_by_fkey":"users"."id" < "documents"."added_by"
+
+Ref "documents_category_id_fkey":"categories"."id" < "documents"."category_id"
+
+Ref "documents_file_type_fkey":"file_types"."id" < "documents"."file_type"
+
+Ref "documents_language_fkey":"languages"."code" < "documents"."language"
+
+Ref "documents_publisher_id_fkey":"publishers"."id" < "documents"."publisher_id"
+
+Ref "favorites_document_id_fkey":"documents"."id" < "favorites"."document_id"
+
+Ref "favorites_user_id_fkey":"users"."id" < "favorites"."user_id"
+
+Ref "feedback_user_id_fkey":"users"."id" < "feedback"."user_id"
+
+Ref "notifications_user_id_fkey":"users"."id" < "notifications"."user_id"
+
+Ref "ratings_document_id_fkey":"documents"."id" < "ratings"."document_id"
+
+Ref "ratings_user_id_fkey":"users"."id" < "ratings"."user_id"
+
+Ref "reading_progress_chapter_id_fkey":"document_chapters"."id" < "reading_progress"."chapter_id"
+
+Ref "reading_progress_document_id_fkey":"documents"."id" < "reading_progress"."document_id"
+
+Ref "reading_progress_section_id_fkey":"document_sections"."id" < "reading_progress"."section_id"
+
+Ref "reading_progress_session_id_fkey":"user_sessions"."id" < "reading_progress"."session_id"
+
+Ref "reading_progress_user_id_fkey":"users"."id" < "reading_progress"."user_id"
+
+Ref "user_sessions_user_id_fkey":"users"."id" < "user_sessions"."user_id"
+
+Ref "voices_language_fkey":"languages"."code" < "voices"."language"
