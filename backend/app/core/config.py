@@ -122,6 +122,14 @@ class Settings(BaseSettings):
         case_sensitive = True
         env_file = ".env"
         env_file_encoding = "utf-8"
+        
+    # Allowed file types for document upload
+    ALLOWED_FILE_TYPES: list[str] = [
+        "txt", "pdf", "docx", "doc", "rtf", "odt", "html", "xml", "json", "csv", "xls", "xlsx", "ppt", "pptx"
+    ]
+    
+    # Max file size for upload (bytes), ví dụ: 20MB
+    MAX_FILE_SIZE: int = 20 * 1024 * 1024  # 20MB
 
 # Create settings instance
 settings = Settings() 

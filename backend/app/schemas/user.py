@@ -67,4 +67,8 @@ class UserVerification(BaseModel):
 class PasswordReset(BaseModel):
     email: EmailStr
     code: str = Field(..., min_length=6, max_length=6)
+    new_password: str = Field(..., min_length=6)
+
+class PasswordChange(BaseModel):
+    old_password: str = Field(..., min_length=6)
     new_password: str = Field(..., min_length=6) 

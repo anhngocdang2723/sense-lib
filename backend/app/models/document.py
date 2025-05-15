@@ -55,6 +55,6 @@ class Document(BaseModel):
     __table_args__ = (
         CheckConstraint('file_size > 0', name='check_file_size'),
         CheckConstraint("publication_year >= 1800 AND publication_year <= EXTRACT(YEAR FROM CURRENT_DATE)", name='check_publication_year'),
-        CheckConstraint("isbn IS NULL OR (length(isbn) IN (10, 13) AND isbn ~ '^[0-9-]+$')", name='check_isbn'),
+        CheckConstraint("isbn IS NULL OR (isbn ~ '^(?:[0-9]{10}|[0-9]{13}|[0-9]{3}-[0-9]{1,5}-[0-9]{1,7}-[0-9]{1,6}-[0-9])$')", name='check_isbn'),
         CheckConstraint("version ~ '^[0-9]+\\.[0-9]+(\\.[0-9]+)?$'", name='check_version_format'),
     ) 

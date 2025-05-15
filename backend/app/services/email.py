@@ -27,16 +27,16 @@ def get_code_expiration() -> datetime:
     return datetime.now(timezone.utc) + timedelta(minutes=15)
 
 async def send_verification_email(email: str, code: str):
-    """Send verification code email"""
+    """Gửi email xác minh"""
     message = MessageSchema(
-        subject="Email Verification",
+        subject="Xác minh địa chỉ email",
         recipients=[email],
         body=f"""
         <html>
             <body>
-                <h1>Email Verification</h1>
-                <p>Your verification code is: <strong>{code}</strong></p>
-                <p>This code will expire in 15 minutes.</p>
+                <h1>Xác minh email</h1>
+                <p>Mã xác minh của bạn là: <strong>{code}</strong></p>
+                <p>Mã này sẽ hết hạn sau 15 phút.</p>
             </body>
         </html>
         """,
@@ -47,17 +47,17 @@ async def send_verification_email(email: str, code: str):
     await fm.send_message(message)
 
 async def send_password_reset_email(email: str, code: str):
-    """Send password reset code email"""
+    """Gửi email đặt lại mật khẩu"""
     message = MessageSchema(
-        subject="Password Reset",
+        subject="Yêu cầu đặt lại mật khẩu",
         recipients=[email],
         body=f"""
         <html>
             <body>
-                <h1>Password Reset Request</h1>
-                <p>Your password reset code is: <strong>{code}</strong></p>
-                <p>This code will expire in 15 minutes.</p>
-                <p>If you did not request a password reset, please ignore this email.</p>
+                <h1>Đặt lại mật khẩu</h1>
+                <p>Mã đặt lại mật khẩu của bạn là: <strong>{code}</strong></p>
+                <p>Mã này sẽ hết hạn sau 15 phút.</p>
+                <p>Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.</p>
             </body>
         </html>
         """,
@@ -69,30 +69,30 @@ async def send_password_reset_email(email: str, code: str):
 
 def send_verification_email_old(email: str, code: str) -> bool:
     """
-    Send verification code to user's email
-    Returns True if email was sent successfully
+    Gửi mã xác minh đến email người dùng
+    Trả về True nếu gửi thành công
     """
     try:
-        # Create message
+        # Tạo nội dung email
         msg = MIMEMultipart()
         msg['From'] = settings.SMTP_USERNAME
         msg['To'] = email
-        msg['Subject'] = "Verify your SenseLib account"
+        msg['Subject'] = "Xác minh tài khoản SenseLib"
 
-        # Email body
+        # Nội dung HTML của email
         body = f"""
         <html>
             <body>
-                <h2>Welcome to SenseLib!</h2>
-                <p>Your verification code is: <strong>{code}</strong></p>
-                <p>This code will expire in 10 minutes.</p>
-                <p>If you didn't request this code, please ignore this email.</p>
+                <h2>Chào mừng bạn đến với SenseLib!</h2>
+                <p>Mã xác minh của bạn là: <strong>{code}</strong></p>
+                <p>Mã này sẽ hết hạn sau 10 phút.</p>
+                <p>Nếu bạn không yêu cầu mã này, vui lòng bỏ qua email.</p>
             </body>
         </html>
         """
         msg.attach(MIMEText(body, 'html'))
 
-        # Connect to SMTP server and send email
+        # Kết nối và gửi email qua SMTP
         with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
             server.starttls()
             server.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD)
@@ -100,5 +100,5 @@ def send_verification_email_old(email: str, code: str) -> bool:
         
         return True
     except Exception as e:
-        print(f"Error sending email: {str(e)}")
-        return False 
+        print(f"Lỗi khi gửi email: {str(e)}")
+        return False

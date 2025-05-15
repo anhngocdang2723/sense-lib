@@ -3,7 +3,7 @@ from fastapi import APIRouter
 router = APIRouter()
 
 # Import and include all API routers
-from . import auth, health, documents, users, access, search, categories, tags, authors
+from . import auth, health, documents, users, access, search, categories, tags, authors, languages
 
 # Include all routers
 router.include_router(health.router)
@@ -15,3 +15,4 @@ router.include_router(access.router)
 router.include_router(categories.router, prefix="/categories", tags=["categories"])
 router.include_router(tags.router, prefix="/tags", tags=["tags"])
 router.include_router(authors.router, prefix="/authors", tags=["authors"])
+router.include_router(languages.router, prefix="/languages", tags=["languages"])

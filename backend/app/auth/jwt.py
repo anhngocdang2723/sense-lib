@@ -71,7 +71,7 @@ async def get_current_user(
         raise credentials_exception
     
     # Truy vấn user từ database
-    from ..models.models import User
+    from ..models.user import User
     user = db.query(User).filter(User.username == token_data.username).first()
     if not user:
         raise credentials_exception

@@ -9,11 +9,16 @@ from app.core.database import get_db
 from app.core.config import settings
 from app.core.security import get_current_user, create_access_token, get_password_hash, verify_password
 from app.models import User, UserRole
-from app.schemas.user import UserCreate, UserUpdate, UserResponse, UserList, UserVerification, PasswordReset
+from app.schemas.user import UserCreate, UserUpdate, UserResponse, UserList, UserVerification, PasswordReset, PasswordChange
 from app.services.email import generate_verification_code, send_verification_email, get_code_expiration
 from app.services.verification import VerificationService
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/users", tags=["users"])
+
+class PasswordChange(BaseModel):
+    old_password: str
+    new_password: str
 
 @router.get("/profile", response_model=UserResponse)
 async def get_user_profile(
@@ -233,4 +238,28 @@ async def reset_password(
     
     db.commit()
     
-    return {"message": "Password has been reset successfully"} 
+    return {"message": "Password has been reset successfully"}
+
+@router.post("/change-password")
+async def change_password(
+    password_data: PasswordChange,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+) -> dict:
+    """
+    Change user's password by providing old and new password
+    """
+    # Verify old password
+    if not verify_password(password_data.old_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=400,
+            detail="Incorrect old password"
+        )
+    
+    # Update to new password
+    current_user.hashed_password = get_password_hash(password_data.new_password)
+    current_user.updated_at = datetime.now(timezone.utc)
+    
+    db.commit()
+    
+    return {"message": "Password has been changed successfully"} 

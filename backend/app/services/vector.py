@@ -156,10 +156,15 @@ class VectorStore:
                     points.append(point)
                 
                 # Store vectors in Qdrant Cloud
-                self.client.upsert(
-                    collection_name=self.COLLECTION_NAME,
-                    points=points
-                )
+                try:
+                    self.client.upsert(
+                        collection_name=self.COLLECTION_NAME,
+                        points=points
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to upsert points to Qdrant Cloud: {str(e)}")
+                    logger.error(f"Points data: {points}")
+                    raise Exception(f"Failed to store vectors in Qdrant Cloud: {str(e)}")
                 
                 if self.verbose:
                     progress = batch_end / total_docs * 100
@@ -171,7 +176,7 @@ class VectorStore:
             
         except Exception as e:
             logger.error(f"Failed to store documents in Qdrant Cloud: {str(e)}")
-            return False
+            raise Exception(f"Failed to store documents in Qdrant Cloud: {str(e)}")
 
     def search_documents(
         self,
