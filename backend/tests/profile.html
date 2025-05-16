@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>User Profile</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+      background-color: #f4f4f4;
+    }
+
+    .container {
+      background-color: white;
+      padding: 30px;
+      border-radius: 10px;
+      max-width: 600px;
+      margin: auto;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    h2 {
+      text-align: center;
+      color: #333;
+    }
+
+    .field {
+      margin-bottom: 12px;
+    }
+
+    .field label {
+      font-weight: bold;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .field span {
+      color: #444;
+    }
+
+    .error {
+      color: red;
+      text-align: center;
+      margin-top: 10px;
+    }
+
+    .logout-btn {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      margin-top: 20px;
+      background-color: #dc3545;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .logout-btn:hover {
+      background-color: #c82333;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>User Profile</h2>
+    <div id="profile"></div>
+    <div class="error" id="errorMsg"></div>
+    <button class="logout-btn" onclick="handleLogout()">Logout</button>
+  </div>
+
+  <script>
+    function formatValue(value) {
+      if (value === null) return "<i>null</i>";
+      if (typeof value === "boolean") return value ? "true ✅" : "false ❌";
+      if (String(value).endsWith("Z")) return new Date(value).toLocaleString();
+      return value;
+    }
+
+    async function getProfile() {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        window.location.replace('login.html');
+        return;
+      }
+
+      const profileDiv = document.getElementById("profile");
+      const errorMsg = document.getElementById("errorMsg");
+
+      profileDiv.innerHTML = "";
+      errorMsg.innerText = "";
+
+      try {
+        const response = await fetch("http://localhost:8000/api/users/profile", {
+          method: "GET",
+          headers: {
+            "Authorization": "Bearer " + token
+          },
+          credentials: 'include'
+        });
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            // Token expired or invalid
+            localStorage.removeItem('access_token');
+            window.location.replace('login.html');
+            return;
+          }
+          const errorData = await response.json();
+          throw new Error(errorData.detail || "Failed to fetch profile");
+        }
+
+        const data = await response.json();
+
+        const fields = [
+          ["ID", data.id],
+          ["Username", data.username],
+          ["Email", data.email],
+          ["Full Name", data.full_name],
+          ["Phone Number", data.phone_number],
+          ["Address", data.address],
+          ["Role", data.role],
+          ["Active", data.is_active],
+          ["Verified", data.is_verified],
+          ["Avatar URL", data.avatar_url],
+          ["Last Login", data.last_login],
+          ["Created At", data.created_at],
+          ["Updated At", data.updated_at],
+        ];
+
+        profileDiv.innerHTML = fields.map(
+          ([label, value]) => `
+            <div class="field">
+              <label>${label}:</label>
+              <span>${formatValue(value)}</span>
+            </div>
+          `
+        ).join("");
+
+      } catch (err) {
+        errorMsg.innerText = err.message;
+      }
+    }
+
+    function handleLogout() {
+      localStorage.removeItem('access_token');
+      window.location.replace('login.html');
+    }
+
+    // Load profile when page loads
+    window.onload = getProfile;
+  </script>
+</body>
+</html>

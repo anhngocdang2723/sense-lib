@@ -11,6 +11,11 @@ from sqlalchemy.orm import Session, joinedload
 from app.core.database import get_db
 from app.core.config import settings
 from app.core.security import get_current_user
+from app.core.exceptions import (
+    BaseAPIException, DocumentException, DuplicateFileError,
+    InvalidFileError, FileProcessingError, VectorizationError,
+    ValidationError, DatabaseError
+)
 from app.models import (
     User, Document, DocumentStatus, DocumentAccessLevel, FileType, Category, UserRole,
     DocumentChapter, DocumentSection, DocumentAudio, DocumentQA, ReadingProgress,
@@ -43,8 +48,12 @@ async def upload_document(
     current_user: User = Depends(get_current_user)
 ):
     """Upload a new document"""
+    logger.info(f"Starting document upload process for file: {file.filename}")
+    logger.info(f"Upload parameters - Title: {title}, Category: {category_id}, Language: {language}")
+    
     try:
         # Create DocumentCreate instance from form data
+        logger.info("Creating DocumentCreate instance from form data")
         document_data = DocumentCreate(
             title=title,
             description=description,
@@ -55,32 +64,50 @@ async def upload_document(
             access_level=access_level,
             version=version
         )
+        logger.info("DocumentCreate instance created successfully")
         
         # Process and save document using service
+        logger.info("Starting document processing and saving")
         document = await DocumentService.process_and_save_document(
             db=db,
             data=document_data,
             file=file,
             current_user=current_user
         )
+        logger.info(f"Document processed and saved successfully with ID: {document.id}")
         
         # Refresh document to ensure all relationships are loaded
+        logger.info("Refreshing document to load relationships")
         db.refresh(document)
+        logger.info("Document refresh completed")
         
         return document
         
-    except Exception as e:
-        logger.error(f"Error in upload_document: {str(e)}")
+    except DocumentException as e:
+        # Log the error with appropriate level based on status code
+        if e.status_code >= 500:
+            logger.error(f"Server error in upload_document: {str(e)}", exc_info=True)
+        else:
+            logger.warning(f"Client error in upload_document: {str(e)}")
+        
         # If document was created but vectorization failed, update status
         if 'document' in locals():
             try:
-                document.status = DocumentStatus.PENDING  # Use PENDING instead of FAILED
+                logger.warning("Attempting to update document status to PENDING after error")
+                document.status = DocumentStatus.PENDING
                 db.commit()
-            except:
-                pass
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error processing document: {str(e)}"
+                logger.info("Document status updated to PENDING")
+            except Exception as status_error:
+                logger.error(f"Failed to update document status: {str(status_error)}", exc_info=True)
+        
+        # Re-raise the exception to be handled by FastAPI's exception handler
+        raise e
+        
+    except Exception as e:
+        logger.error(f"Unexpected error in upload_document: {str(e)}", exc_info=True)
+        raise DatabaseError(
+            "An unexpected error occurred while uploading the document",
+            data={"error": str(e)}
         )
 
 @router.get("/list", response_model=DocumentList)

@@ -18,6 +18,10 @@ from app.models.user import User
 from app.schemas.document import DocumentCreate
 from app.core.config import settings
 from app.services.vector import VectorStore
+from app.core.exceptions import (
+    DuplicateFileError, InvalidFileError, FileProcessingError,
+    VectorizationError, ValidationError, DatabaseError
+)
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -394,39 +398,83 @@ class DocumentService:
         current_user: User
     ) -> Tuple[bool, str]:
         """Validate all document data before processing"""
+        logger.info("Starting document data validation")
+        
         # Check required fields
         if not data.title:
-            return False, "Title is required"
+            logger.error("Validation failed: Title is required")
+            raise ValidationError(
+                "Title is required",
+                data={"field": "title"}
+            )
         
         # Validate ISBN
+        logger.info(f"Validating ISBN: {data.isbn}")
         if not DocumentService.validate_isbn(data.isbn):
-            return False, "Invalid ISBN format. Must be in format: 1234567890, 9781234567890, or 978-604-1-00614-6"
+            logger.error("Validation failed: Invalid ISBN format")
+            raise ValidationError(
+                "Invalid ISBN format. Must be in format: 1234567890, 9781234567890, or 978-604-1-00614-6",
+                data={"field": "isbn", "value": data.isbn}
+            )
         
         # Validate publication year
+        logger.info(f"Validating publication year: {data.publication_year}")
         if not DocumentService.validate_publication_year(data.publication_year):
-            return False, "Invalid publication year. Must be between 1800 and current year"
+            logger.error("Validation failed: Invalid publication year")
+            raise ValidationError(
+                "Invalid publication year. Must be between 1800 and current year",
+                data={"field": "publication_year", "value": data.publication_year}
+            )
         
         # Validate file size
+        logger.info(f"Validating file size: {file.size} bytes")
         if not DocumentService.validate_file_size(file.size):
-            return False, "Invalid file size. Must be greater than 0"
+            logger.error("Validation failed: Invalid file size")
+            raise InvalidFileError(
+                "Invalid file size. Must be greater than 0",
+                data={"file_size": file.size}
+            )
         
         # Validate version
+        logger.info(f"Validating version: {data.version}")
         if not DocumentService.validate_version(data.version):
-            return False, "Invalid version format. Must be in format x.y or x.y.z"
+            logger.error("Validation failed: Invalid version format")
+            raise ValidationError(
+                "Invalid version format. Must be in format x.y or x.y.z",
+                data={"field": "version", "value": data.version}
+            )
         
         # Check if language exists
+        logger.info(f"Checking language existence: {data.language}")
         if data.language:
             language = db.query(Language).filter(Language.code == data.language).first()
             if not language:
-                return False, f"Language with code {data.language} does not exist"
+                logger.error(f"Validation failed: Language {data.language} does not exist")
+                raise ValidationError(
+                    f"Language with code {data.language} does not exist",
+                    data={"field": "language", "value": data.language}
+                )
         
         # Check if category exists
+        logger.info(f"Checking category existence: {data.category_id}")
         if data.category_id:
             category = db.query(Category).filter(Category.id == data.category_id).first()
             if not category:
-                return False, f"Category with ID {data.category_id} does not exist"
+                logger.error(f"Validation failed: Category {data.category_id} does not exist")
+                raise ValidationError(
+                    f"Category with ID {data.category_id} does not exist",
+                    data={"field": "category_id", "value": str(data.category_id)}
+                )
         
+        logger.info("Document data validation completed successfully")
         return True, ""
+
+    @staticmethod
+    def _check_duplicate_file(file_hash: str, db: Session) -> None:
+        """Check if a file with the same hash already exists"""
+        existing_doc = db.query(Document).filter(Document.file_hash == file_hash).first()
+        if existing_doc:
+            raise DuplicateFileError(file_hash=file_hash, document_id=str(existing_doc.id))
 
     @staticmethod
     async def process_and_save_document(
@@ -436,108 +484,141 @@ class DocumentService:
         current_user: User
     ) -> Document:
         """Process and save document with all validations"""
-        # Validate all data first
-        is_valid, error_message = await DocumentService.validate_document_data(
-            db, data, file, current_user
-        )
-        if not is_valid:
-            raise HTTPException(status_code=400, detail=error_message)
-
+        logger.info("Starting document processing and saving")
+        
         try:
+            # Validate all data first
+            logger.info("Validating document data")
+            await DocumentService.validate_document_data(db, data, file, current_user)
+
             # Calculate file hash
+            logger.info("Calculating file hash")
             file_hash = await DocumentProcessor.get_file_hash(file)
+            logger.info(f"File hash calculated: {file_hash}")
             
             # Check for duplicate file
-            existing_doc = db.query(Document).filter(Document.file_hash == file_hash).first()
-            if existing_doc:
-                raise HTTPException(
-                    status_code=409,
-                    detail="A document with this file already exists"
-                )
+            logger.info("Checking for duplicate file")
+            DocumentService._check_duplicate_file(file_hash, db)
 
             # Save file to disk
+            logger.info("Saving file to disk")
             timestamp = int(datetime.utcnow().timestamp())
             safe_filename = f"{timestamp}_{file.filename}"
             file_path = os.path.join(settings.UPLOAD_DIR, safe_filename)
+            logger.info(f"File will be saved as: {safe_filename}")
             
-            # Read file content
-            content = await file.read()
-            with open(file_path, "wb") as buffer:
-                buffer.write(content)
+            try:
+                # Read file content
+                logger.info("Reading file content")
+                content = await file.read()
+                with open(file_path, "wb") as buffer:
+                    buffer.write(content)
+                logger.info("File saved successfully")
+            except Exception as e:
+                logger.error(f"Error saving file: {str(e)}")
+                raise FileProcessingError(
+                    "Failed to save file to disk",
+                    data={"error": str(e)}
+                )
 
             # Get file type
+            logger.info("Getting file type")
             file_ext = os.path.splitext(file.filename)[1].lower().replace('.', '')
             file_type = db.query(FileType).filter(FileType.extension == file_ext).first()
             if not file_type:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Unsupported file type: {file_ext}"
+                logger.error(f"Unsupported file type: {file_ext}")
+                raise InvalidFileError(
+                    f"Unsupported file type: {file_ext}",
+                    data={"file_type": file_ext}
+                )
+            logger.info(f"File type identified: {file_ext}")
+
+            try:
+                # Create document instance
+                logger.info("Creating document instance")
+                document_data = data.model_dump()
+                document_data.update({
+                    "file_name": safe_filename,
+                    "file_hash": file_hash,
+                    "file_size": len(content),
+                    "file_type": file_type.id,
+                    "added_by": current_user.id,
+                    "status": DocumentStatus.PENDING
+                })
+                
+                db_document = Document(**document_data)
+                db.add(db_document)
+                db.commit()
+                db.refresh(db_document)
+                logger.info(f"Document instance created with ID: {db_document.id}")
+            except Exception as e:
+                logger.error(f"Database error: {str(e)}")
+                raise DatabaseError(
+                    "Failed to create document record",
+                    data={"error": str(e)}
                 )
 
-            # Create document instance first
-            document_data = data.model_dump()
-            document_data.update({
-                "file_name": safe_filename,
-                "file_hash": file_hash,
-                "file_size": len(content),
-                "file_type": file_type.id,
-                "added_by": current_user.id,
-                "status": DocumentStatus.PENDING
-            })
-            
-            db_document = Document(**document_data)
-            db.add(db_document)
-            db.commit()
-            db.refresh(db_document)
-
             # Process document using DocumentProcessor
+            logger.info("Starting document processing")
             processor = DocumentProcessor()
             chunks, metadata_list = processor.process_file(file_path, db)
             
             if not chunks:
-                # If processing fails, mark as REJECTED and raise error
+                logger.error("Document processing failed - no chunks generated")
                 db_document.status = DocumentStatus.REJECTED
                 db.commit()
-                raise HTTPException(
-                    status_code=400,
-                    detail="Failed to process document content"
+                raise FileProcessingError(
+                    "Failed to process document content",
+                    data={"document_id": str(db_document.id)}
                 )
+            logger.info(f"Document processed into {len(chunks)} chunks")
 
             # Add to vector store
             try:
-                # Initialize vector store
+                logger.info("Initializing vector store")
                 vector_store = VectorStore(
                     qdrant_url=settings.QDRANT_URL,
                     qdrant_api_key=settings.QDRANT_API_KEY
                 )
                 
-                # Store document chunks in vector store
+                logger.info("Storing document chunks in vector store")
                 success = vector_store.store_documents(chunks, metadata_list)
                 if not success:
-                    raise Exception("Failed to store document in vector store")
+                    logger.error("Failed to store document in vector store")
+                    raise VectorizationError(
+                        "Failed to store document in vector store",
+                        data={"document_id": str(db_document.id)}
+                    )
                 
-                # Update status to AVAILABLE after successful vectorization
+                logger.info("Document successfully stored in vector store")
                 db_document.status = DocumentStatus.AVAILABLE
                 db.commit()
+                logger.info("Document status updated to AVAILABLE")
             except Exception as e:
-                # If vectorization fails, mark as REJECTED
+                logger.error(f"Vector store operation failed: {str(e)}", exc_info=True)
                 db_document.status = DocumentStatus.REJECTED
                 db.commit()
-                raise HTTPException(
-                    status_code=500,
-                    detail=f"Document saved but vectorization failed: {str(e)}"
+                raise VectorizationError(
+                    "Document saved but vectorization failed",
+                    data={
+                        "document_id": str(db_document.id),
+                        "error": str(e)
+                    }
                 )
 
+            logger.info("Document processing and saving completed successfully")
             return db_document
 
-        except HTTPException:
+        except (DuplicateFileError, InvalidFileError, FileProcessingError,
+                VectorizationError, ValidationError, DatabaseError):
             raise
         except Exception as e:
-            db.rollback()
+            logger.error(f"Unexpected error in process_and_save_document: {str(e)}", exc_info=True)
             # Clean up file if it was created
             if 'file_path' in locals() and os.path.exists(file_path):
+                logger.info(f"Cleaning up file: {file_path}")
                 os.remove(file_path)
-            raise HTTPException(
-                status_code=500,
-                detail=f"Error processing document: {str(e)}"
+            raise DatabaseError(
+                "Unexpected error occurred while processing document",
+                data={"error": str(e)}
             ) 
