@@ -8,6 +8,8 @@
   [![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
   [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=flat&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
   [![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white)](https://www.docker.com/)
+  [![React](https://img.shields.io/badge/React-20232A?style=flat&logo=react&logoColor=61DAFB)](https://reactjs.org/)
+  [![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat&logo=vite&logoColor=white)](https://vitejs.dev/)
   
   A comprehensive digital library system with AI-powered knowledge management and intelligent document search capabilities.
   
@@ -28,20 +30,23 @@ Sense-Lib is a modern digital library system that combines traditional library m
 
 ```
 senselib/
-├── frontend/                 # Frontend application
-├── backend/                  # Backend application
-│   ├── app/                 # Application code
-│   │   ├── api/            # API endpoints
-│   │   ├── core/           # Core functionality
-│   │   ├── models/         # Database models
-│   │   ├── services/       # Business logic
-│   │   └── utils/          # Utility functions
-│   ├── data/               # Data storage
-│   │   ├── documents/      # Document storage
-│   │   └── embeddings/     # Vector embeddings
-│   └── tests/              # Test files
-├── docs/                    # Documentation
-└── docker/                  # Docker configuration
+├── frontend/                 # Frontend application (React + Vite)
+│   ├── src/                 # Source code
+│   │   ├── components/      # Reusable components
+│   │   ├── pages/          # Page components
+│   │   └── assets/         # Static assets
+│   ├── public/             # Public assets
+│   └── package.json        # Dependencies
+├── backend/                 # Backend application (FastAPI)
+│   ├── app/                # Application code
+│   │   ├── api/           # API endpoints
+│   │   ├── core/          # Core functionality
+│   │   ├── models/        # Database models
+│   │   ├── services/      # Business logic
+│   │   └── utils/         # Utility functions
+│   ├── data/              # Data storage
+│   └── tests/             # Test files
+└── docs/                   # Documentation
 ```
 
 ## ✨ Features
@@ -103,6 +108,7 @@ senselib/
 - Python 3.8+
 - PostgreSQL 13+
 - Node.js 16+ (for frontend)
+- npm 8+ (for frontend)
 - Docker (optional)
 
 ### Backend Setup
@@ -137,9 +143,10 @@ cd frontend
 # Install dependencies
 npm install
 
-# Configure environment
+# Create .env file
 cp .env.example .env
-# Edit .env with your configuration
+# Edit .env with your configuration:
+# VITE_API_URL=http://localhost:8000
 ```
 
 ## 🏃‍♂️ Running the Application
@@ -151,16 +158,48 @@ cp .env.example .env
 cd backend
 uvicorn app.main:app --reload
 
-# Start frontend
+# Start frontend (in a new terminal)
 cd frontend
 npm run dev
 ```
+
+The application will be available at:
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:8000
+- API Documentation: http://localhost:8000/docs
 
 ### Production Mode
 
 ```bash
 # Using Docker Compose
 docker-compose up -d
+```
+
+## 📦 Frontend Dependencies
+
+The frontend uses the following main dependencies:
+- React 18
+- Vite
+- React Router DOM
+- Plain CSS (no CSS framework)
+
+To install all dependencies:
+```bash
+cd frontend
+npm install
+```
+
+## 🔧 Environment Variables
+
+### Frontend (.env)
+```
+VITE_API_URL=http://localhost:8000
+```
+
+### Backend (.env)
+```
+DATABASE_URL=postgresql://user:password@localhost:5432/senselib
+SECRET_KEY=your-secret-key
 ```
 
 ## 📖 API Documentation
