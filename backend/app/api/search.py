@@ -7,7 +7,7 @@ from ..auth.jwt import get_current_user
 from ..services.vector import VectorStore
 from ..models import Document
 
-router = APIRouter(prefix="/search", tags=["search"])
+router = APIRouter()
 
 @router.get("/semantic")
 async def semantic_search(

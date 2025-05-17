@@ -32,7 +32,7 @@ from app.services.document import DocumentService
 # Configure logger
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/documents", tags=["documents"])
+router = APIRouter()
 
 @router.post("/upload", response_model=DocumentResponse)
 async def upload_document(

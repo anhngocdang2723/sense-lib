@@ -14,7 +14,7 @@ from app.services.email import generate_verification_code, send_verification_ema
 from app.services.verification import VerificationService
 from pydantic import BaseModel
 
-router = APIRouter(prefix="/users", tags=["users"])
+router = APIRouter()
 
 class PasswordChange(BaseModel):
     old_password: str

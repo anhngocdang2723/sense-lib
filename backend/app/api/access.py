@@ -7,7 +7,7 @@ from ..core.config import settings
 from ..auth.jwt import get_current_user
 from ..models import Document, User, DocumentStatus, DocumentAccess, AccessLogs
 
-router = APIRouter(prefix="/access", tags=["access"])
+router = APIRouter()
 
 @router.post("/request/{document_id}")
 async def request_access(

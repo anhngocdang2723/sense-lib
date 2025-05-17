@@ -17,7 +17,7 @@ from app.core.security import (
     get_current_user
 )
 
-router = APIRouter(prefix="/auth", tags=["auth"])
+router = APIRouter()
 
 @router.post("/login")
 async def login(
@@ -47,7 +47,7 @@ async def login(
     
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.username}, expires_delta=access_token_expires
+        data={"sub": str(user.id)}, expires_delta=access_token_expires, secret_key=settings.JWT_SECRET_KEY
     )
     
     return Token(
@@ -154,8 +154,9 @@ async def create_admin_user(
     db.refresh(admin)
     
     # Create access token for admin
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": admin.username}
+        data={"sub": str(admin.id)},   secret_key=settings.JWT_SECRET_KEY
     )
     return Token(
         access_token=access_token,

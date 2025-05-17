@@ -3,9 +3,20 @@ const API_URL = import.meta.env.VITE_API_URL;
 export const endpoints = {
   // Auth endpoints
   auth: {
-    login: '/api/auth/login',
-    register: '/api/auth/register',
-    forgotPassword: '/api/auth/forgot-password',
+    login: '/auth/login',
+    register: '/auth/register',
+    refresh: '/auth/refresh',
+    logout: '/auth/logout',
+  },
+  sessions: {
+    create: '/sessions/',
+    list: '/sessions/me',
+    delete: (sessionId) => `/sessions/${sessionId}`,
+    accessLogs: {
+      create: '/sessions/access-logs',
+      list: '/sessions/access-logs',
+      get: (logId) => `/sessions/access-logs/${logId}`,
+    }
   },
   // User endpoints
   user: {
@@ -23,4 +34,7 @@ export const endpoints = {
 };
 
 // Helper function to get full URL
-export const getApiUrl = (endpoint) => `${API_URL}${endpoint}`; 
+export const getApiUrl = (endpoint) => {
+  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+  return `${baseUrl}${endpoint}`;
+};

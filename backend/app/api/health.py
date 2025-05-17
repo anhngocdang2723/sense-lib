@@ -5,7 +5,7 @@ from ..core.database import get_db
 from ..core.qdrant_client import get_qdrant_client
 from qdrant_client.http.exceptions import UnexpectedResponse
 
-router = APIRouter(tags=["health"])
+router = APIRouter()
 
 @router.get("/health")
 async def health_check(
