@@ -80,7 +80,9 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
     
-    # Grok API settings - required from env
+    # Grok API settings
+    GROK_API_URL: str = "https://api.x.ai/v1/chat/completions"
+    GROK_API_MODEL: str = "grok-3"
     GROK_API_KEY: str = os.getenv("GROK_API_KEY")
     if not GROK_API_KEY:
         raise ValueError("GROK_API_KEY environment variable is not set")
@@ -117,6 +119,21 @@ class Settings(BaseSettings):
     MAIL_STARTTLS: bool = True
     MAIL_SSL_TLS: bool = False
     USE_CREDENTIALS: bool = True
+    
+    # Summary settings
+    # Settings for embedding chunks
+    EMBEDDING_CHUNK_SIZE: int = 512  # Kích thước chunk cho embedding (nhỏ hơn để tối ưu tìm kiếm)
+    EMBEDDING_CHUNK_OVERLAP: int = 50  # Độ chồng lấp giữa các chunk embedding
+    
+    # Settings for summarization chunks
+    SUMMARY_CHUNK_SIZE: int = 3072  # Kích thước chunk cho tóm tắt (lớn hơn để giữ ngữ cảnh)
+    SUMMARY_CHUNK_OVERLAP: int = 100  # Độ chồng lấp giữa các chunk tóm tắt
+    SUMMARY_MAX_LENGTH: int = 500  # Độ dài tối đa của tóm tắt cuối cùng (khoảng 400-500 từ)
+    SUMMARY_MIN_LENGTH: int = 100  # Độ dài tối thiểu của tóm tắt cuối cùng (khoảng 80-100 từ)
+    
+    # Audio settings
+    AUDIO_DIR: str = "uploads/audio"
+    DEFAULT_VOICE_ID: str = "vi-VN-Standard-A"
     
     class Config:
         case_sensitive = True

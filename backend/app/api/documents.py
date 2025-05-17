@@ -26,7 +26,8 @@ from app.schemas.document import (
     DocumentChapterBase, DocumentSectionBase, DocumentAudioBase, DocumentQABase
 )
 from app.services.document import DocumentService
-from app.services.vector import VectorStore
+# Comment out vector store import
+# from app.services.vector import VectorStore
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -394,4 +395,44 @@ async def create_qa(
     db.commit()
     db.refresh(qa)
     
-    return qa 
+    return qa
+
+@router.get("/{document_id}/summary", response_model=DocumentResponse)
+async def get_document_summary(
+    document_id: UUID = Path(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+) -> DocumentResponse:
+    """Get document summary"""
+    logger.info(f"Getting summary for document {document_id}")
+    
+    document = db.query(Document).filter(Document.id == document_id).first()
+    if not document:
+        logger.error(f"Document {document_id} not found")
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    if not document.ai_summary:
+        logger.warning(f"No summary available for document {document_id}")
+        raise HTTPException(status_code=404, detail="Summary not available")
+    
+    return document
+
+@router.get("/{document_id}/audio", response_model=DocumentAudioBase)
+async def get_document_audio(
+    document_id: UUID = Path(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+) -> DocumentAudioBase:
+    """Get document audio"""
+    logger.info(f"Getting audio for document {document_id}")
+    
+    audio = db.query(DocumentAudio).filter(
+        DocumentAudio.document_id == document_id,
+        DocumentAudio.status == DocumentAudioStatus.COMPLETED
+    ).first()
+    
+    if not audio:
+        logger.error(f"Audio not found for document {document_id}")
+        raise HTTPException(status_code=404, detail="Audio not found")
+    
+    return audio 

@@ -8,13 +8,12 @@ import re
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException, UploadFile
-from app.models.document import Document, DocumentStatus
-from app.models.document_chapter import DocumentChapter
-from app.models.document_section import DocumentSection
+from app.models import (
+    User, Document, DocumentStatus, DocumentAccessLevel, FileType, Category, UserRole,
+    DocumentChapter, DocumentSection, DocumentAudio, DocumentQA, ReadingProgress,
+    DocumentAudioStatus, ReadingProgressType, ReadingProgressStatus, Voice
+)
 from app.models.language import Language
-from app.models.category import Category
-from app.models.file_type import FileType
-from app.models.user import User
 from app.schemas.document import DocumentCreate
 from app.core.config import settings
 from app.services.vector import VectorStore
@@ -22,6 +21,8 @@ from app.core.exceptions import (
     DuplicateFileError, InvalidFileError, FileProcessingError,
     VectorizationError, ValidationError, DatabaseError
 )
+from app.services.summary_service import SummaryService
+from app.services.audio_service import AudioService
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -364,6 +365,10 @@ class DocumentProcessor:
             return f"hash_{int(datetime.now().timestamp())}"
 
 class DocumentService:
+    def __init__(self):
+        self.summary_service = SummaryService()
+        self.audio_service = AudioService()
+    
     @staticmethod
     def validate_isbn(isbn: Optional[str]) -> bool:
         """Validate ISBN format"""
@@ -573,6 +578,14 @@ class DocumentService:
                 )
             logger.info(f"Document processed into {len(chunks)} chunks")
 
+            # Generate summary from the first chunk (or combine chunks if needed)
+            logger.info("Generating document summary")
+            summary_service = SummaryService()
+            summary = await summary_service.generate_summary(" ".join(chunks))
+            db_document.ai_summary = summary
+            
+            # Comment out vector store operations
+            """
             # Add to vector store
             try:
                 logger.info("Initializing vector store")
@@ -605,20 +618,99 @@ class DocumentService:
                         "error": str(e)
                     }
                 )
+            """
 
-            logger.info("Document processing and saving completed successfully")
+            # Generate audio from summary
+            logger.info("Generating audio from summary")
+            audio_service = AudioService()
+            
+            # Create introduction text with book title
+            intro_text = f"Sau đây là bản tóm tắt của {db_document.title}"
+            # Remove author check since it's not in the model
+            intro_text += ". "
+            
+            # Combine introduction with summary
+            full_text = intro_text + summary
+            
+            # Get default voice for the language
+            default_voice = db.query(Voice).filter(
+                Voice.language == data.language,
+                Voice.is_active == True
+            ).first()
+            
+            if not default_voice:
+                logger.warning(f"No default voice found for language {data.language}, using system default")
+                current_time = datetime.utcnow()
+                default_voice = Voice(
+                    id=settings.DEFAULT_VOICE_ID,
+                    name="Default Voice",
+                    language=data.language,
+                    provider="gTTS",
+                    is_active=True,
+                    created_at=current_time,
+                    updated_at=current_time,
+                    gender=None  # Optional field
+                )
+                try:
+                    db.add(default_voice)
+                    db.commit()
+                    logger.info(f"Created default voice for language {data.language}")
+                except Exception as e:
+                    logger.error(f"Error creating default voice: {str(e)}")
+                    db.rollback()
+                    raise DatabaseError(
+                        "Failed to create default voice",
+                        data={"error": str(e)}
+                    )
+            
+            # Generate audio using original filename
+            original_filename = os.path.splitext(db_document.file_name)[0]  # Remove extension
+            audio_result = await audio_service.generate_audio(
+                text=full_text,
+                language=data.language,
+                filename=original_filename
+            )
+            
+            # Create audio record with all required fields
+            current_time = datetime.utcnow()
+            document_audio = DocumentAudio(
+                document_id=db_document.id,
+                language=data.language,
+                voice_id=default_voice.id,
+                file_url=audio_result["file_url"],
+                duration_seconds=audio_result["duration_seconds"],
+                file_size=audio_result["file_size"],
+                status=DocumentAudioStatus.COMPLETED,
+                created_at=current_time,
+                updated_at=current_time
+            )
+            
+            try:
+                db.add(document_audio)
+                db.commit()
+                logger.info(f"Audio record created successfully for document {db_document.id}")
+            except Exception as e:
+                logger.error(f"Error creating audio record: {str(e)}")
+                db.rollback()
+                raise DatabaseError(
+                    "Failed to create audio record",
+                    data={"error": str(e)}
+                )
+
+            # Update document status and commit
+            db_document.status = DocumentStatus.AVAILABLE
+            db.commit()
+            
+            logger.info("Document processing completed successfully")
             return db_document
-
-        except (DuplicateFileError, InvalidFileError, FileProcessingError,
-                VectorizationError, ValidationError, DatabaseError):
-            raise
+            
         except Exception as e:
-            logger.error(f"Unexpected error in process_and_save_document: {str(e)}", exc_info=True)
-            # Clean up file if it was created
-            if 'file_path' in locals() and os.path.exists(file_path):
-                logger.info(f"Cleaning up file: {file_path}")
-                os.remove(file_path)
-            raise DatabaseError(
-                "Unexpected error occurred while processing document",
-                data={"error": str(e)}
-            ) 
+            logger.error(f"Error in document processing: {str(e)}")
+            if 'db_document' in locals():
+                db_document.status = DocumentStatus.REJECTED
+                db.commit()
+            raise
+
+    def __del__(self):
+        self.summary_service = None
+        self.audio_service = None 
