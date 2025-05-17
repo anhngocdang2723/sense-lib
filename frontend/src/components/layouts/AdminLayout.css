@@ -4,6 +4,10 @@
 
 .admin-sider {
   background: #001529;
+  position: fixed;
+  left: 0;
+  height: 100vh;
+  z-index: 1000;
 }
 
 .admin-logo {
@@ -24,9 +28,12 @@
   background: white;
   padding: 0 24px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-  position: sticky;
+  position: fixed;
   top: 0;
-  z-index: 1;
+  right: 0;
+  left: 250px; /* Match sider width */
+  z-index: 999;
+  height: 64px;
 }
 
 .admin-header-content {
@@ -36,17 +43,62 @@
   height: 100%;
 }
 
-.admin-header-content h1 {
+.admin-header-left h1 {
   margin: 0;
   font-size: 20px;
   color: #1a1a1a;
 }
 
+.admin-header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.header-icon-button {
+  font-size: 20px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.header-icon-button:hover {
+  background: #f0f0f0;
+}
+
+.user-dropdown {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.user-dropdown:hover {
+  background: #f0f0f0;
+}
+
+.user-name {
+  font-size: 14px;
+  color: #1a1a1a;
+}
+
 .admin-content {
-  margin: 24px;
+  margin: 64px 24px 24px 274px; /* Top margin for header, left margin for sider */
   padding: 24px;
   background: #f0f2f5;
-  min-height: 280px;
+  min-height: calc(100vh - 88px);
+  border-radius: 8px;
+}
+
+/* Menu styles */
+.ant-menu {
+  border-right: none !important;
 }
 
 .ant-menu-item {
@@ -63,4 +115,54 @@
 
 .ant-menu-item:hover a {
   color: white;
+}
+
+.ant-menu-submenu-title {
+  margin: 0 !important;
+}
+
+.ant-menu-submenu-title:hover {
+  color: white !important;
+}
+
+.ant-menu-submenu-selected > .ant-menu-submenu-title {
+  color: white !important;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .admin-sider {
+    position: fixed;
+    left: -250px;
+    transition: left 0.3s;
+  }
+
+  .admin-sider.ant-layout-sider-collapsed {
+    left: 0;
+  }
+
+  .admin-header {
+    left: 0;
+  }
+
+  .admin-content {
+    margin-left: 24px;
+  }
+
+  .user-name {
+    display: none;
+  }
+}
+
+/* Print styles */
+@media print {
+  .admin-sider,
+  .admin-header {
+    display: none;
+  }
+
+  .admin-content {
+    margin: 0;
+    padding: 0;
+  }
 } 

@@ -7,18 +7,22 @@ from app.schemas.publisher import PublisherResponse
 from app.schemas.file_type import FileTypeResponse
 from app.schemas.language import LanguageResponse
 from app.schemas.user import UserResponse
+from app.schemas.author import AuthorResponse
+from app.schemas.tag import TagResponse
 
 class DocumentBase(BaseModel):
     title: str
     description: Optional[str] = None
     publisher_id: Optional[UUID4] = None
     publication_year: Optional[int] = Field(None, ge=1800, le=datetime.now().year)
-    isbn: Optional[str] = Field(None, pattern=r'^(?:[0-9]{10}|[0-9]{13}|[0-9]{3}-[0-9]{1,5}-[0-9]{1,7}-[0-9]{1,6}-[0-9])$')
+    isbn: Optional[str] = Field(None, pattern=r'^[0-9-]{10,20}$')
     category_id: UUID4
     language: str = "en"
     version: str = Field("1.0", pattern=r'^[0-9]+\.[0-9]+(\.[0-9]+)?$')
     access_level: DocumentAccessLevel = DocumentAccessLevel.PUBLIC
     image_url: Optional[str] = None
+    author_ids: Optional[List[UUID4]] = None
+    tag_ids: Optional[List[UUID4]] = None
 
 class DocumentCreate(DocumentBase):
     pass
@@ -34,7 +38,7 @@ class DocumentUpdate(BaseModel):
     description: Optional[str] = None
     publisher_id: Optional[UUID4] = None
     publication_year: Optional[int] = Field(None, ge=1800, le=datetime.now().year)
-    isbn: Optional[str] = Field(None, pattern=r'^[0-9-]{10,13}$')
+    isbn: Optional[str] = Field(None, pattern=r'^[0-9-]{10,20}$')
     category_id: Optional[UUID4] = None
     language: Optional[str] = None
     version: Optional[str] = Field(None, pattern=r'^[0-9]+\.[0-9]+(\.[0-9]+)?$')
@@ -42,6 +46,8 @@ class DocumentUpdate(BaseModel):
     status: Optional[DocumentStatus] = None
     is_featured: Optional[bool] = None
     image_url: Optional[str] = None
+    author_ids: Optional[List[UUID4]] = None
+    tag_ids: Optional[List[UUID4]] = None
 
 class DocumentResponse(DocumentBase):
     id: UUID4
@@ -63,6 +69,8 @@ class DocumentResponse(DocumentBase):
     language_rel: Optional[LanguageResponse] = None
     added_by_user: Optional[UserResponse] = None
     image_url: Optional[str] = None
+    authors: Optional[List[AuthorResponse]] = []
+    tags: Optional[List[TagResponse]] = []
 
     class Config:
         from_attributes = True

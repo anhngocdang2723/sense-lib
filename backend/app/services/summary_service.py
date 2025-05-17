@@ -20,13 +20,13 @@ class SummaryService:
         self.api_url = settings.GROK_API_URL
         self.api_model = settings.GROK_API_MODEL
         
-        # Initialize text splitter for summarization
+        # Optimize text splitter for larger chunks and less overlap
         self.text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=settings.SUMMARY_CHUNK_SIZE,
-            chunk_overlap=settings.SUMMARY_CHUNK_OVERLAP,
+            chunk_size=settings.SUMMARY_CHUNK_SIZE * 1.5,  # Increase chunk size by 50%
+            chunk_overlap=settings.SUMMARY_CHUNK_OVERLAP // 2,  # Reduce overlap by 50%
             length_function=len,
             is_separator_regex=False,
-            separators=["\n\n", "\n", ".", "!", "?"]  # Split by paragraphs and sentences
+            separators=["\n\n", "\n", ".", "!", "?"]
         )
         
         # Create SSL context
@@ -34,18 +34,18 @@ class SummaryService:
         self.ssl_context.check_hostname = False
         self.ssl_context.verify_mode = ssl.CERT_NONE
         
-        # Create connector with SSL context and keep-alive settings
+        # Optimize connector settings for better performance
         self.connector = aiohttp.TCPConnector(
             ssl=self.ssl_context,
-            limit=10,  # Allow up to 10 concurrent connections
-            ttl_dns_cache=300,  # Cache DNS for 5 minutes
-            force_close=False,  # Don't force close connections
-            keepalive_timeout=1200,  # Keep connections alive for 20 minutes
-            enable_cleanup_closed=True  # Clean up closed connections
+            limit=20,  # Increased from 10 to 20 concurrent connections
+            ttl_dns_cache=600,  # Cache DNS for 10 minutes (increased from 5)
+            force_close=False,
+            keepalive_timeout=1800,  # Keep connections alive for 30 minutes (increased from 20)
+            enable_cleanup_closed=True
         )
         
-        # Create semaphore to limit concurrent API calls
-        self.semaphore = asyncio.Semaphore(5)  # Maximum 5 concurrent API calls
+        # Increase concurrent API calls limit
+        self.semaphore = asyncio.Semaphore(8)  # Increased from 5 to 8 concurrent API calls
         
         # Progress tracking
         self.processed_chunks = 0
@@ -90,19 +90,19 @@ class SummaryService:
                 return e
     
     async def _create_final_summary(self, combined_summaries: str) -> str:
-        """Create final summary with a completely new session"""
         try:
-            # Create a new connector specifically for final summary
+            # Optimize final connector settings
             final_connector = aiohttp.TCPConnector(
                 ssl=self.ssl_context,
-                limit=1,  # Only one connection for final summary
-                ttl_dns_cache=300,
-                force_close=False,  # Changed to False to allow keep-alive
-                keepalive_timeout=1200
+                limit=2,  # Increased from 1 to 2
+                ttl_dns_cache=600,
+                force_close=False,
+                keepalive_timeout=1800
             )
             
-            # Create new session with dedicated timeout
-            timeout = aiohttp.ClientTimeout(total=1200)  # 20 minutes timeout
+            # Optimize timeout settings
+            timeout = aiohttp.ClientTimeout(total=900)  # Reduced from 1200 to 900 seconds
+            
             async with aiohttp.ClientSession(
                 connector=final_connector,
                 timeout=timeout,
@@ -113,27 +113,16 @@ class SummaryService:
                     "Connection": "keep-alive"
                 }
             ) as session:
-                prompt = f"""Hãy tạo một bài tóm tắt mạch lạc và trôi chảy từ các đoạn tóm tắt sau đây.
-                Yêu cầu:
-                1. Tập trung vào nội dung chính của văn bản, bỏ qua các thông tin không liên quan
-                2. Không thêm tiêu đề hoặc các phần mở đầu không cần thiết
-                3. Bắt đầu trực tiếp với nội dung tóm tắt
-                4. Sử dụng từ ngữ chuyển tiếp phù hợp để kết nối các ý
-                5. Viết theo văn phong học thuật, rõ ràng và dễ hiểu
-                6. Đảm bảo tính mạch lạc và liên kết giữa các phần
-                7. Độ dài khoảng {settings.SUMMARY_MAX_LENGTH} từ
-                
-                Các đoạn tóm tắt:
-                {combined_summaries}
-                
-                Bài tóm tắt cuối cùng:"""
+                # Optimized prompt for faster final summary
+                prompt = f"""Tạo bài tóm tắt mạch lạc ({settings.SUMMARY_MAX_LENGTH} từ) từ các đoạn sau:
+                {combined_summaries}"""
                 
                 data = {
                     "model": self.api_model,
                     "messages": [
                         {"role": "user", "content": prompt}
                     ],
-                    "temperature": 0.7,
+                    "temperature": 0.5,  # Reduced from 0.7
                     "max_tokens": settings.SUMMARY_MAX_LENGTH
                 }
                 
@@ -141,7 +130,7 @@ class SummaryService:
                 async with session.post(
                     self.api_url,
                     json=data,
-                    timeout=600,  # 10 minutes timeout for the request
+                    timeout=300,  # Reduced from 600 to 300 seconds
                     raise_for_status=True
                 ) as response:
                     result = await response.json()
@@ -152,7 +141,6 @@ class SummaryService:
             logger.error(f"Error in final summary generation: {str(e)}")
             raise
         finally:
-            # Ensure connector is closed
             if 'final_connector' in locals():
                 await final_connector.close()
 
@@ -246,48 +234,41 @@ class SummaryService:
             raise
     
     @retry(
-        stop=stop_after_attempt(5),  # Increased retry attempts
-        wait=wait_exponential(multiplier=1, min=4, max=20),  # Increased max wait time
+        stop=stop_after_attempt(3),  # Reduced from 5 to 3 attempts
+        wait=wait_exponential(multiplier=1, min=2, max=10),  # Reduced wait times
         retry=(
             retry_if_exception_type((aiohttp.ClientError, asyncio.TimeoutError)) |
             retry_if_exception_message(match="502 Bad Gateway") |
-            retry_if_exception_message(match="503 Service Unavailable") |
-            retry_if_exception_message(match="504 Gateway Timeout") |
-            retry_if_exception_message(match="Session is closed")
-        )
+            retry_if_exception_message(match="503 Service Unavailable")
+        )  # Removed some retry conditions
     )
     async def _summarize_chunk(self, session: aiohttp.ClientSession, chunk: str, chunk_index: int) -> tuple[int, str]:
-        """Summarize a single chunk with retry mechanism"""
         try:
             headers = {
                 "Authorization": f"Bearer {self.api_key}",
                 "Content-Type": "application/json",
-                "User-Agent": "SenseLib/1.0"  # Add user agent
+                "User-Agent": "SenseLib/1.0"
             }
             
-            prompt = f"""Hãy tóm tắt đoạn văn bản sau đây một cách ngắn gọn, tập trung vào thông tin quan trọng nhất.
-            Tóm tắt nên có độ dài khoảng 100-200 từ để giữ được ngữ cảnh và ý nghĩa của đoạn văn.
-            
-            Đoạn văn bản:
-            {chunk}
-            
-            Tóm tắt:"""
+            # Optimized prompt for faster processing
+            prompt = f"""Tóm tắt ngắn gọn (100-150 từ) đoạn văn sau, tập trung vào thông tin chính:
+            {chunk}"""
             
             data = {
                 "model": self.api_model,
                 "messages": [
                     {"role": "user", "content": prompt}
                 ],
-                "temperature": 0.5,  # Lower temperature for more focused summaries
-                "max_tokens": 300  # Cho phép tóm tắt dài hơn cho mỗi chunk
+                "temperature": 0.3,  # Reduced for faster, more focused summaries
+                "max_tokens": 200  # Reduced from 300
             }
             
             async with session.post(
                 self.api_url,
                 json=data,
                 headers=headers,
-                timeout=60,  # Increased timeout
-                raise_for_status=True  # Raise exception for non-200 status codes
+                timeout=45,  # Reduced from 60 to 45 seconds
+                raise_for_status=True
             ) as response:
                 result = await response.json()
                 summary = result["choices"][0]["message"]["content"]

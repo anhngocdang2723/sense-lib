@@ -1,5 +1,7 @@
 .admin-documents {
-  padding: 24px;
+  padding: 14px;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .admin-documents-header {
@@ -16,17 +18,71 @@
   color: #1a1a1a;
 }
 
+/* Table styles */
+.ant-table-wrapper {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  /* overflow-x: auto; */ /* Bỏ overflow-x nếu không cần thiết */
+}
+
+.ant-table {
+  /* min-width: 1000px; */ /* Bỏ min-width để bảng không bị kéo ngang */
+  width: 100%;
+}
+
+.ant-table-thead > tr > th {
+  background: #fafafa;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Table cell content handling */
+.ant-table-cell {
+  max-width: 300px;
+  word-break: break-word;
+  white-space: normal;
+}
+
+.ant-table-cell .ant-space {
+  width: 100%;
+}
+
+/* Document title and description */
+.document-title {
+  font-weight: 500;
+  max-width: 250px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.document-description {
+  max-width: 300px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Document details */
 .document-details {
   display: flex;
   gap: 24px;
+  flex-wrap: wrap;
 }
 
 .document-cover {
   flex-shrink: 0;
+  max-width: 200px;
 }
 
 .document-info {
   flex-grow: 1;
+  min-width: 300px;
+  max-width: calc(100% - 224px); /* 200px cover + 24px gap */
 }
 
 .document-info h2 {
@@ -34,34 +90,33 @@
   margin-bottom: 16px;
   font-size: 20px;
   font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .document-info p {
   margin: 8px 0;
   line-height: 1.5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
 }
 
 .document-info strong {
   display: inline-block;
   width: 120px;
   color: #666;
-}
-
-/* Table styles */
-.ant-table-wrapper {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.ant-table-thead > tr > th {
-  background: #fafafa;
-  font-weight: 500;
+  flex-shrink: 0;
 }
 
 /* Modal styles */
 .ant-modal-content {
   border-radius: 8px;
+  max-width: 90vw;
 }
 
 .ant-modal-header {
@@ -71,6 +126,8 @@
 
 .ant-modal-body {
   padding: 24px;
+  max-height: 80vh;
+  overflow-y: auto;
 }
 
 .ant-modal-footer {
@@ -87,6 +144,17 @@
 .ant-select-selector,
 .ant-picker {
   border-radius: 4px;
+  max-width: 100%;
+}
+
+/* Input field content handling */
+.ant-input-affix-wrapper {
+  max-width: 100%;
+}
+
+.ant-input-affix-wrapper input {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Button styles */
@@ -95,6 +163,7 @@
   height: 32px;
   padding: 0 16px;
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .ant-btn-primary {
@@ -125,12 +194,17 @@
   height: 22px;
   line-height: 20px;
   font-size: 12px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Image preview styles */
 .ant-image {
   border-radius: 4px;
   overflow: hidden;
+  max-width: 100%;
 }
 
 .ant-image-preview-img {
@@ -141,16 +215,21 @@
 /* Upload styles */
 .ant-upload-list {
   margin-top: 8px;
+  max-width: 100%;
 }
 
 .ant-upload-list-item {
   border-radius: 4px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Switch styles */
 .ant-switch {
   min-width: 44px;
   height: 22px;
+  flex-shrink: 0;
 }
 
 .ant-switch-checked {
@@ -160,19 +239,113 @@
 /* Space styles */
 .ant-space {
   gap: 8px !important;
+  width: 100%;
+}
+
+/* Link styles */
+.ant-table a {
+  color: #1890ff;
+  text-decoration: none;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+}
+
+.ant-table a:hover {
+  color: #40a9ff;
+  text-decoration: underline;
+}
+
+/* Icon styles */
+.anticon {
+  color: #666;
+  flex-shrink: 0;
 }
 
 /* Responsive styles */
 @media (max-width: 768px) {
+  .admin-documents {
+    padding: 16px;
+  }
+
   .document-details {
     flex-direction: column;
   }
 
   .document-cover {
+    max-width: 100%;
     text-align: center;
   }
 
   .document-info {
     margin-top: 24px;
+    max-width: 100%;
+  }
+
+  .ant-table {
+    min-width: 100%;
+  }
+
+  .ant-table-cell {
+    max-width: none;
+  }
+
+  .ant-modal-body {
+    padding: 16px;
+  }
+}
+
+/* Print styles */
+@media print {
+  .admin-documents {
+    padding: 0;
+  }
+
+  .ant-table-wrapper {
+    box-shadow: none;
+  }
+
+  .ant-table-cell {
+    max-width: none;
+  }
+}
+
+/* Upload form styles */
+.upload-form-container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+
+.upload-form-full-width {
+  grid-column: 1 / -1;
+}
+
+.reference-field-header {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  font-weight: normal;
+}
+
+.reference-field-header label, .reference-field-header span {
+  font-weight: normal;
+  margin-bottom: 0;
+}
+
+.reference-field-header .ant-btn {
+  padding: 0 4px;
+  height: 20px;
+  font-size: 12px;
+  margin-left: 2px;
+  line-height: 1;
+}
+
+/* Responsive styles for upload form */
+@media (max-width: 992px) {
+  .upload-form-container {
+    grid-template-columns: 1fr;
   }
 } 

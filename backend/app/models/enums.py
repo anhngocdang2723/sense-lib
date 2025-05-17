@@ -27,6 +27,7 @@ class DocumentStatus(str, Enum):
     PENDING = "pending"
     APPROVED = "approved"
     REJECTED = "rejected"
+    ARCHIVED = "archived"
 
 class DocumentAccessLevel(str, Enum):
     PUBLIC = "public"

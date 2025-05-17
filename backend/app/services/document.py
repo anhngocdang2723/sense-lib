@@ -11,7 +11,7 @@ from fastapi import HTTPException, UploadFile
 from app.models import (
     User, Document, DocumentStatus, DocumentAccessLevel, FileType, Category, UserRole,
     DocumentChapter, DocumentSection, DocumentAudio, DocumentQA, ReadingProgress,
-    DocumentAudioStatus, ReadingProgressType, ReadingProgressStatus, Voice
+    DocumentAudioStatus, ReadingProgressType, ReadingProgressStatus, Voice, Author, Tag
 )
 from app.models.language import Language
 from app.schemas.document import DocumentCreate
@@ -588,6 +588,12 @@ class DocumentService:
                 # Create document instance
                 logger.info("Creating document instance")
                 document_data = data.model_dump()
+                
+                # Remove author_ids and tag_ids from document_data
+                author_ids = document_data.pop('author_ids', None)
+                tag_ids = document_data.pop('tag_ids', None)
+                
+                # Add other fields
                 document_data.update({
                     "file_name": safe_filename,
                     "file_hash": file_hash,
@@ -598,11 +604,33 @@ class DocumentService:
                     "image_url": image_url
                 })
                 
+                # Create document
                 db_document = Document(**document_data)
                 db.add(db_document)
                 db.commit()
                 db.refresh(db_document)
                 logger.info(f"Document instance created with ID: {db_document.id}")
+
+                # Add authors if provided
+                if author_ids:
+                    logger.info(f"Adding {len(author_ids)} authors to document")
+                    for author_id in author_ids:
+                        author = db.query(Author).filter(Author.id == author_id).first()
+                        if author:
+                            db_document.authors.append(author)
+                    db.commit()
+                    logger.info("Authors added successfully")
+
+                # Add tags if provided
+                if tag_ids:
+                    logger.info(f"Adding {len(tag_ids)} tags to document")
+                    for tag_id in tag_ids:
+                        tag = db.query(Tag).filter(Tag.id == tag_id).first()
+                        if tag:
+                            db_document.tags.append(tag)
+                    db.commit()
+                    logger.info("Tags added successfully")
+
             except Exception as e:
                 logger.error(f"Database error: {str(e)}")
                 raise DatabaseError(

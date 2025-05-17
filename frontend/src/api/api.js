@@ -49,9 +49,9 @@ export const endpoints = {
   },
   // Document endpoints
   documents: {
-    list: '/api/documents/list',
+    list: '/api/documents/list/',
     detail: (id) => `/api/documents/${id}`,
-    create: '/api/documents/upload',
+    create: '/api/documents/upload/',
     update: (id) => `/api/documents/${id}`,
     delete: (id) => `/api/documents/${id}`,
     summary: (id) => `/api/documents/${id}/summary`,
@@ -59,13 +59,45 @@ export const endpoints = {
   },
   // Category endpoints
   categories: {
-    list: '/api/categories',
+    list: '/api/categories/',
     detail: (id) => `/api/categories/${id}`,
+    create: '/api/categories/',
+    update: (id) => `/api/categories/${id}`,
+    delete: (id) => `/api/categories/${id}`,
   },
   // Language endpoints
   languages: {
-    list: '/api/languages',
+    list: '/api/languages/',
     detail: (id) => `/api/languages/${id}`,
+  },
+  // Author endpoints
+  authors: {
+    list: '/api/authors/',
+    create: '/api/authors/',
+    detail: (id) => `/api/authors/${id}`,
+    update: (id) => `/api/authors/${id}`,
+    delete: (id) => `/api/authors/${id}`,
+  },
+  // Admin endpoints
+  admin: {
+    dashboard: {
+      stats: '/api/admin/dashboard/stats',
+    },
+    // ... other admin endpoints
+  },
+  tags: {
+    list: '/api/tags/',
+    create: '/api/tags/',
+    detail: (id) => `/api/tags/${id}`,
+    update: (id) => `/api/tags/${id}`,
+    delete: (id) => `/api/tags/${id}`,
+  },
+  publishers: {
+    list: '/api/publishers/',
+    create: '/api/publishers/',
+    detail: (id) => `/api/publishers/${id}`,
+    update: (id) => `/api/publishers/${id}`,
+    delete: (id) => `/api/publishers/${id}`,
   },
 };
 

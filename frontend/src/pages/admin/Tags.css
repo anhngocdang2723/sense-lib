@@ -1,0 +1,285 @@
+.admin-tags {
+  padding: 24px;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.admin-tags-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.admin-tags-header h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 500;
+  color: #1a1a1a;
+}
+
+/* Table styles */
+.ant-table-wrapper {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow-x: auto;
+}
+
+.ant-table {
+  min-width: 600px;
+}
+
+.ant-table-thead > tr > th {
+  background: #fafafa;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.ant-table-cell {
+  max-width: 350px;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
+.ant-table-cell .ant-space {
+  width: 100%;
+}
+
+.tag-name {
+  font-weight: 500;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+}
+
+.tag-slug {
+  color: #888;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+}
+
+.tag-description {
+  max-width: 500px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0 0 2px 0;
+  white-space: normal;
+}
+
+/* Tag details */
+.tag-details {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.tag-info {
+  flex-grow: 1;
+  min-width: 300px;
+  max-width: 100%;
+}
+
+.tag-info h2 {
+  margin-top: 0;
+  margin-bottom: 16px;
+  font-size: 20px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tag-info p {
+  margin: 8px 0;
+  line-height: 1.5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.tag-info strong {
+  display: inline-block;
+  width: 120px;
+  color: #666;
+  flex-shrink: 0;
+}
+
+/* Modal styles */
+.tag-modal .ant-modal-content {
+  border-radius: 8px;
+  max-width: 90vw;
+}
+
+.tag-modal .ant-modal-header {
+  border-bottom: 1px solid #f0f0f0;
+  padding: 16px 24px;
+}
+
+.tag-modal .ant-modal-body {
+  padding: 24px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.tag-modal .ant-modal-footer {
+  border-top: 1px solid #f0f0f0;
+  padding: 16px 24px;
+}
+
+/* Form styles */
+.ant-form-item-label > label {
+  font-weight: 500;
+}
+
+.ant-input,
+.ant-select-selector,
+.ant-picker {
+  border-radius: 4px;
+  max-width: 100%;
+}
+
+/* Input field content handling */
+.ant-input-affix-wrapper {
+  max-width: 100%;
+}
+
+.ant-input-affix-wrapper input {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Button styles */
+.ant-btn {
+  border-radius: 4px;
+  height: 32px;
+  padding: 0 16px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.ant-btn-primary {
+  background: #1890ff;
+  border-color: #1890ff;
+}
+
+.ant-btn-primary:hover {
+  background: #40a9ff;
+  border-color: #40a9ff;
+}
+
+.ant-btn-danger {
+  color: #ff4d4f;
+  border-color: #ff4d4f;
+}
+
+.ant-btn-danger:hover {
+  color: #ff7875;
+  border-color: #ff7875;
+  background: #fff;
+}
+
+/* Tag styles */
+.ant-tag {
+  border-radius: 4px;
+  padding: 0 8px;
+  height: 22px;
+  line-height: 20px;
+  font-size: 12px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Switch styles */
+.ant-switch {
+  min-width: 44px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.ant-switch-checked {
+  background-color: #1890ff;
+}
+
+/* Space styles */
+.ant-space {
+  gap: 8px !important;
+  width: 100%;
+}
+
+/* Link styles */
+.ant-table a {
+  color: #1890ff;
+  text-decoration: none;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+}
+
+.ant-table a:hover {
+  color: #40a9ff;
+  text-decoration: underline;
+}
+
+/* Icon styles */
+.anticon {
+  color: #666;
+  flex-shrink: 0;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .admin-tags {
+    padding: 16px;
+  }
+  .admin-tags-header {
+    flex-direction: column;
+    gap: 16px;
+    align-items: flex-start;
+  }
+  .admin-tags-header button {
+    width: 100%;
+  }
+  .ant-table {
+    min-width: 100%;
+  }
+  .ant-table-cell {
+    max-width: none;
+  }
+  .tag-modal .ant-modal-body {
+    padding: 16px;
+  }
+}
+
+/* Print styles */
+@media print {
+  .admin-tags {
+    padding: 0;
+  }
+  .ant-table-wrapper {
+    box-shadow: none;
+  }
+  .ant-table-cell {
+    max-width: none;
+  }
+}
+
+.admin-tags .ant-table-tbody > tr > td {
+  padding-top: 6px;
+  padding-bottom: 6px;
+} 

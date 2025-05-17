@@ -10,6 +10,7 @@ from .languages import router as languages_router
 from .search import router as search_router
 from .access import router as access_router
 from .health import router as health_router
+from .publishers import router as publishers_router
 
 # Define router configurations
 ROUTER_CONFIGS = {
@@ -23,7 +24,8 @@ ROUTER_CONFIGS = {
     "search": {"prefix": "/search", "tags": ["search"]},
     "access": {"prefix": "/access", "tags": ["access"]},
     "health": {"prefix": "/health", "tags": ["health"]},
-    "sessions": {"prefix": "/sessions", "tags": ["sessions"]}
+    "sessions": {"prefix": "/sessions", "tags": ["sessions"]},
+    "publishers": {"prefix": "/publishers", "tags": ["publishers"]}
 }
 
 router = APIRouter()
@@ -40,3 +42,4 @@ router.include_router(search_router, **ROUTER_CONFIGS["search"])
 router.include_router(access_router, **ROUTER_CONFIGS["access"])
 router.include_router(health_router, **ROUTER_CONFIGS["health"])
 router.include_router(sessions_router, **ROUTER_CONFIGS["sessions"])
+router.include_router(publishers_router, **ROUTER_CONFIGS["publishers"])

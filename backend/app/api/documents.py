@@ -7,6 +7,7 @@ import hashlib
 import logging
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
+import json
 
 from app.core.database import get_db
 from app.core.config import settings
@@ -19,7 +20,7 @@ from app.core.exceptions import (
 from app.models import (
     User, Document, DocumentStatus, DocumentAccessLevel, FileType, Category, UserRole,
     DocumentChapter, DocumentSection, DocumentAudio, DocumentQA, ReadingProgress,
-    DocumentAudioStatus, ReadingProgressType, ReadingProgressStatus
+    DocumentAudioStatus, ReadingProgressType, ReadingProgressStatus, Tag, Author
 )
 from app.schemas.document import (
     DocumentCreate, DocumentUpdate, DocumentResponse, DocumentList,
@@ -28,6 +29,8 @@ from app.schemas.document import (
 from app.services.document import DocumentService
 # Comment out vector store import
 # from app.services.vector import VectorStore
+from app.schemas.author import AuthorResponse
+from app.schemas.tag import TagResponse
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -44,8 +47,10 @@ async def upload_document(
     language: str = Form("en"),
     access_level: str = Form("public"),
     version: str = Form("1.0"),
+    authors: Optional[str] = Form(None),  # JSON string of author IDs
+    tags: Optional[str] = Form(None),     # JSON string of tag IDs
     file: UploadFile = File(...),
-    image: Optional[UploadFile] = File(None),  # New parameter for image upload
+    image: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -54,6 +59,20 @@ async def upload_document(
     logger.info(f"Upload parameters - Title: {title}, Category: {category_id}, Language: {language}")
     
     try:
+        # Parse authors and tags from JSON strings
+        author_ids = None
+        tag_ids = None
+        if authors:
+            try:
+                author_ids = json.loads(authors)
+            except json.JSONDecodeError:
+                raise HTTPException(status_code=400, detail="Invalid authors format")
+        if tags:
+            try:
+                tag_ids = json.loads(tags)
+            except json.JSONDecodeError:
+                raise HTTPException(status_code=400, detail="Invalid tags format")
+
         # Create DocumentCreate instance from form data
         logger.info("Creating DocumentCreate instance from form data")
         document_data = DocumentCreate(
@@ -64,7 +83,9 @@ async def upload_document(
             isbn=isbn,
             language=language,
             access_level=access_level,
-            version=version
+            version=version,
+            author_ids=author_ids,
+            tag_ids=tag_ids
         )
         logger.info("DocumentCreate instance created successfully")
         
@@ -74,7 +95,7 @@ async def upload_document(
             db=db,
             data=document_data,
             file=file,
-            image=image,  # Pass image to service
+            image=image,
             current_user=current_user
         )
         logger.info(f"Document processed and saved successfully with ID: {document.id}")
@@ -84,7 +105,11 @@ async def upload_document(
         db.refresh(document)
         logger.info("Document refresh completed")
         
-        return document
+        return DocumentResponse(
+            **document.__dict__,
+            authors=[AuthorResponse.from_orm(a) for a in getattr(document, 'authors', [])],
+            tags=[TagResponse.from_orm(t) for t in getattr(document, 'tags', [])],
+        )
         
     except DocumentException as e:
         # Log the error with appropriate level based on status code
@@ -168,7 +193,13 @@ async def list_documents(
             total=total,
             skip=skip,
             limit=limit,
-            documents=documents
+            documents=[
+                DocumentResponse(
+                    **doc.__dict__,
+                    authors=[AuthorResponse.from_orm(a) for a in getattr(doc, 'authors', [])],
+                    tags=[TagResponse.from_orm(t) for t in getattr(doc, 'tags', [])],
+                ) for doc in documents
+            ]
         )
     except Exception as e:
         logger.error(f"Error in list_documents: {str(e)}", exc_info=True)
@@ -197,7 +228,11 @@ async def get_document(
     document.view_count += 1
     db.commit()
     
-    return document
+    return DocumentResponse(
+        **document.__dict__,
+        authors=[AuthorResponse.from_orm(a) for a in getattr(document, 'authors', [])],
+        tags=[TagResponse.from_orm(t) for t in getattr(document, 'tags', [])],
+    )
 
 @router.put("/{document_id}", response_model=DocumentResponse)
 async def update_document(
@@ -207,25 +242,43 @@ async def update_document(
     db: Session = Depends(get_db)
 ) -> DocumentResponse:
     """
-    Update document metadata
+    Update document metadata, including authors and tags
     """
+    print(f"[DEBUG] Received update data for document {document_id}: {document_data.dict()}")
     document = db.query(Document).filter(Document.id == document_id).first()
     if not document:
         raise HTTPException(
             status_code=404,
             detail="Document not found"
         )
-    
-    # Update fields if provided
+
     update_data = document_data.dict(exclude_unset=True)
+    print(f"[DEBUG] Update fields for document {document_id}: {update_data}")
     for field, value in update_data.items():
-        setattr(document, field, value)
-    
+        if field == 'tag_ids' and value is not None:
+            document.tags.clear()
+            for tag_id in value:
+                tag = db.query(Tag).filter(Tag.id == tag_id).first()
+                if tag:
+                    document.tags.append(tag)
+        elif field == 'author_ids' and value is not None:
+            document.authors.clear()
+            for author_id in value:
+                author = db.query(Author).filter(Author.id == author_id).first()
+                if author:
+                    document.authors.append(author)
+        else:
+            setattr(document, field, value)
+
     document.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(document)
-    
-    return document
+
+    return DocumentResponse(
+        **document.__dict__,
+        authors=[AuthorResponse.from_orm(a) for a in getattr(document, 'authors', [])],
+        tags=[TagResponse.from_orm(t) for t in getattr(document, 'tags', [])],
+    )
 
 @router.delete("/{document_id}")
 async def delete_document(
@@ -235,6 +288,9 @@ async def delete_document(
 ) -> dict:
     """
     Delete a document (admin only)
+    - If document is active and has related records (comments, ratings, etc): set status to archived
+    - If document is archived and has no related records: delete permanently
+    - If document is active and has no related records: delete permanently
     """
     if current_user.role != UserRole.ADMIN:
         raise HTTPException(
@@ -249,16 +305,43 @@ async def delete_document(
             detail="Document not found"
         )
     
-    # Delete file
-    file_path = os.path.join(settings.UPLOAD_DIR, document.file_name)
-    if os.path.exists(file_path):
-        os.remove(file_path)
+    # Check if document has any related records
+    has_comments = db.query(Document).join(Document.comments).filter(Document.id == document_id).first() is not None
+    has_ratings = db.query(Document).join(Document.ratings).filter(Document.id == document_id).first() is not None
+    has_favorites = db.query(Document).join(Document.favorites).filter(Document.id == document_id).first() is not None
+    has_access_records = db.query(Document).join(Document.access_records).filter(Document.id == document_id).first() is not None
+    has_reading_progress = db.query(Document).join(Document.reading_progress).filter(Document.id == document_id).first() is not None
     
-    # Delete from database
-    db.delete(document)
-    db.commit()
+    has_related_records = any([has_comments, has_ratings, has_favorites, has_access_records, has_reading_progress])
     
-    return {"message": "Document deleted successfully"}
+    if has_related_records:
+        if document.status != DocumentStatus.ARCHIVED:
+            # Soft delete: set status to archived
+            document.status = DocumentStatus.ARCHIVED
+            db.commit()
+            return {
+                "message": "Document is in use and has been archived",
+                "status": "archived"
+            }
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot delete document. It is archived but still has related records."
+            )
+    else:
+        # No related records, safe to delete
+        # Delete file
+        file_path = os.path.join(settings.UPLOAD_DIR, document.file_name)
+        if os.path.exists(file_path):
+            os.remove(file_path)
+        
+        # Delete from database
+        db.delete(document)
+        db.commit()
+        return {
+            "message": "Document has been permanently deleted",
+            "status": "deleted"
+        }
 
 # New endpoints for document chapters
 @router.post("/{document_id}/chapters", response_model=DocumentChapterBase)
