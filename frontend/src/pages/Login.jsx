@@ -59,10 +59,15 @@ function Login() {
       // Step 3: Store all necessary data
       localStorage.setItem('token', accessToken);
       localStorage.setItem('user', JSON.stringify(loginData.user));
+      localStorage.setItem('userRole', loginData.user.role); // Store user role
       sessionService.setSession(session);
       
-      // Step 4: Navigate to home
-      navigate('/');
+      // Step 4: Navigate based on user role
+      if (loginData.user.role === 'admin') {
+        navigate('/admin/dashboard');
+      } else {
+        navigate('/');
+      }
     } catch (err) {
       setError(err.message);
       console.error('Login error:', err);

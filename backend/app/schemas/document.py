@@ -2,6 +2,11 @@ from pydantic import BaseModel, UUID4, Field
 from typing import Optional, List
 from datetime import datetime
 from app.models import DocumentStatus, DocumentAccessLevel
+from app.schemas.category import CategoryFlat
+from app.schemas.publisher import PublisherResponse
+from app.schemas.file_type import FileTypeResponse
+from app.schemas.language import LanguageResponse
+from app.schemas.user import UserResponse
 
 class DocumentBase(BaseModel):
     title: str
@@ -13,6 +18,7 @@ class DocumentBase(BaseModel):
     language: str = "en"
     version: str = Field("1.0", pattern=r'^[0-9]+\.[0-9]+(\.[0-9]+)?$')
     access_level: DocumentAccessLevel = DocumentAccessLevel.PUBLIC
+    image_url: Optional[str] = None
 
 class DocumentCreate(DocumentBase):
     pass
@@ -35,6 +41,7 @@ class DocumentUpdate(BaseModel):
     access_level: Optional[DocumentAccessLevel] = None
     status: Optional[DocumentStatus] = None
     is_featured: Optional[bool] = None
+    image_url: Optional[str] = None
 
 class DocumentResponse(DocumentBase):
     id: UUID4
@@ -50,6 +57,12 @@ class DocumentResponse(DocumentBase):
     added_by: UUID4
     created_at: datetime
     updated_at: Optional[datetime] = None
+    category: Optional[CategoryFlat] = None
+    publisher: Optional[PublisherResponse] = None
+    file_type_rel: Optional[FileTypeResponse] = None
+    language_rel: Optional[LanguageResponse] = None
+    added_by_user: Optional[UserResponse] = None
+    image_url: Optional[str] = None
 
     class Config:
         from_attributes = True

@@ -26,6 +26,7 @@ class Document(BaseModel):
     is_featured = Column(Boolean, default=False)
     ai_summary = Column(Text, nullable=True)
     added_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    image_url = Column(String, nullable=True)
 
     # Relationships
     added_by_user = relationship("User", foreign_keys=[added_by], back_populates="documents")

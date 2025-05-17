@@ -1,0 +1,178 @@
+.admin-documents {
+  padding: 24px;
+}
+
+.admin-documents-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.admin-documents-header h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 500;
+  color: #1a1a1a;
+}
+
+.document-details {
+  display: flex;
+  gap: 24px;
+}
+
+.document-cover {
+  flex-shrink: 0;
+}
+
+.document-info {
+  flex-grow: 1;
+}
+
+.document-info h2 {
+  margin-top: 0;
+  margin-bottom: 16px;
+  font-size: 20px;
+  font-weight: 500;
+}
+
+.document-info p {
+  margin: 8px 0;
+  line-height: 1.5;
+}
+
+.document-info strong {
+  display: inline-block;
+  width: 120px;
+  color: #666;
+}
+
+/* Table styles */
+.ant-table-wrapper {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.ant-table-thead > tr > th {
+  background: #fafafa;
+  font-weight: 500;
+}
+
+/* Modal styles */
+.ant-modal-content {
+  border-radius: 8px;
+}
+
+.ant-modal-header {
+  border-bottom: 1px solid #f0f0f0;
+  padding: 16px 24px;
+}
+
+.ant-modal-body {
+  padding: 24px;
+}
+
+.ant-modal-footer {
+  border-top: 1px solid #f0f0f0;
+  padding: 16px 24px;
+}
+
+/* Form styles */
+.ant-form-item-label > label {
+  font-weight: 500;
+}
+
+.ant-input,
+.ant-select-selector,
+.ant-picker {
+  border-radius: 4px;
+}
+
+/* Button styles */
+.ant-btn {
+  border-radius: 4px;
+  height: 32px;
+  padding: 0 16px;
+  font-weight: 500;
+}
+
+.ant-btn-primary {
+  background: #1890ff;
+  border-color: #1890ff;
+}
+
+.ant-btn-primary:hover {
+  background: #40a9ff;
+  border-color: #40a9ff;
+}
+
+.ant-btn-danger {
+  color: #ff4d4f;
+  border-color: #ff4d4f;
+}
+
+.ant-btn-danger:hover {
+  color: #ff7875;
+  border-color: #ff7875;
+  background: #fff;
+}
+
+/* Tag styles */
+.ant-tag {
+  border-radius: 4px;
+  padding: 0 8px;
+  height: 22px;
+  line-height: 20px;
+  font-size: 12px;
+}
+
+/* Image preview styles */
+.ant-image {
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.ant-image-preview-img {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+/* Upload styles */
+.ant-upload-list {
+  margin-top: 8px;
+}
+
+.ant-upload-list-item {
+  border-radius: 4px;
+}
+
+/* Switch styles */
+.ant-switch {
+  min-width: 44px;
+  height: 22px;
+}
+
+.ant-switch-checked {
+  background-color: #1890ff;
+}
+
+/* Space styles */
+.ant-space {
+  gap: 8px !important;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .document-details {
+    flex-direction: column;
+  }
+
+  .document-cover {
+    text-align: center;
+  }
+
+  .document-info {
+    margin-top: 24px;
+  }
+} 

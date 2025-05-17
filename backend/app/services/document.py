@@ -23,6 +23,7 @@ from app.core.exceptions import (
 )
 from app.services.summary_service import SummaryService
 from app.services.audio_service import AudioService
+from app.services.pdf_service import PDFService
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -368,6 +369,7 @@ class DocumentService:
     def __init__(self):
         self.summary_service = SummaryService()
         self.audio_service = AudioService()
+        self.pdf_service = PDFService()
     
     @staticmethod
     def validate_isbn(isbn: Optional[str]) -> bool:
@@ -486,7 +488,8 @@ class DocumentService:
         db: Session,
         data: DocumentCreate,
         file: UploadFile,
-        current_user: User
+        current_user: User,
+        image: Optional[UploadFile] = None
     ) -> Document:
         """Process and save document with all validations"""
         logger.info("Starting document processing and saving")
@@ -526,6 +529,49 @@ class DocumentService:
                     data={"error": str(e)}
                 )
 
+            # Handle image - either from upload or extract from PDF
+            image_url = None
+            if image:
+                # Use uploaded image if provided
+                logger.info("Processing uploaded image")
+                try:
+                    images_dir = os.path.join(settings.UPLOAD_DIR, "images")
+                    os.makedirs(images_dir, exist_ok=True)
+                    
+                    image_ext = os.path.splitext(image.filename)[1].lower()
+                    safe_image_filename = f"{timestamp}_cover{image_ext}"
+                    image_path = os.path.join(images_dir, safe_image_filename)
+                    
+                    image_content = await image.read()
+                    with open(image_path, "wb") as buffer:
+                        buffer.write(image_content)
+                    
+                    image_url = f"/uploads/images/{safe_image_filename}"
+                    logger.info(f"Uploaded image saved successfully at: {image_url}")
+                except Exception as e:
+                    logger.error(f"Error saving uploaded image: {str(e)}")
+                    image_url = None
+            else:
+                # Try to extract cover from PDF if it's a PDF file
+                file_ext = os.path.splitext(file.filename)[1].lower()
+                if file_ext == '.pdf':
+                    logger.info("Attempting to extract cover from PDF")
+                    try:
+                        images_dir = os.path.join(settings.UPLOAD_DIR, "images")
+                        base_filename = os.path.splitext(safe_filename)[0]
+                        image_url = PDFService.extract_cover_image(
+                            pdf_path=file_path,
+                            output_dir=images_dir,
+                            filename=base_filename
+                        )
+                        if image_url:
+                            logger.info(f"Successfully extracted cover image: {image_url}")
+                        else:
+                            logger.warning("Failed to extract cover image from PDF")
+                    except Exception as e:
+                        logger.error(f"Error extracting cover from PDF: {str(e)}")
+                        image_url = None
+
             # Get file type
             logger.info("Getting file type")
             file_ext = os.path.splitext(file.filename)[1].lower().replace('.', '')
@@ -548,7 +594,8 @@ class DocumentService:
                     "file_size": len(content),
                     "file_type": file_type.id,
                     "added_by": current_user.id,
-                    "status": DocumentStatus.PENDING
+                    "status": DocumentStatus.PENDING,
+                    "image_url": image_url
                 })
                 
                 db_document = Document(**document_data)
@@ -713,4 +760,5 @@ class DocumentService:
 
     def __del__(self):
         self.summary_service = None
-        self.audio_service = None 
+        self.audio_service = None
+        self.pdf_service = None 

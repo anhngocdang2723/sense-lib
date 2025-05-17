@@ -45,6 +45,7 @@ async def upload_document(
     access_level: str = Form("public"),
     version: str = Form("1.0"),
     file: UploadFile = File(...),
+    image: Optional[UploadFile] = File(None),  # New parameter for image upload
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -73,6 +74,7 @@ async def upload_document(
             db=db,
             data=document_data,
             file=file,
+            image=image,  # Pass image to service
             current_user=current_user
         )
         logger.info(f"Document processed and saved successfully with ID: {document.id}")
@@ -127,7 +129,16 @@ async def list_documents(
     List documents with filtering and pagination
     """
     try:
-        query = db.query(Document)
+        logger.info("Starting document list query")
+        
+        # Build base query with joins
+        query = db.query(Document).options(
+            joinedload(Document.category),
+            joinedload(Document.publisher),
+            joinedload(Document.file_type_rel),
+            joinedload(Document.language_rel),
+            joinedload(Document.added_by_user),
+        )
         
         # Apply filters
         if category_id:
@@ -139,16 +150,19 @@ async def list_documents(
         if access_level:
             query = query.filter(Document.access_level == access_level)
         if search:
-            query = query.filter(
+            search_filter = (
                 (Document.title.ilike(f"%{search}%")) |
                 (Document.description.ilike(f"%{search}%"))
             )
+            query = query.filter(search_filter)
         
         # Get total count
         total = query.count()
+        logger.info(f"Total documents found: {total}")
         
         # Apply pagination
         documents = query.offset(skip).limit(limit).all()
+        logger.info(f"Retrieved {len(documents)} documents")
         
         return DocumentList(
             total=total,
@@ -157,7 +171,11 @@ async def list_documents(
             documents=documents
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Error in list_documents: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to retrieve documents: {str(e)}"
+        )
 
 @router.get("/{document_id}", response_model=DocumentResponse)
 async def get_document(

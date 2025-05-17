@@ -48,4 +48,9 @@ mypy==1.7.1
 # Text processing
 transformers>=4.30.0
 torch>=2.0.0
-gTTS>=2.3.2 
+gTTS>=2.3.2
+
+# PDF processing
+pdf2image==1.16.3
+PyPDF2==3.0.1
+Pillow==10.0.0 

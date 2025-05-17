@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 import os
 import uvicorn
@@ -10,6 +11,7 @@ from app.models import *  # Import all models to ensure they are registered
 
 # Create required directories
 os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+os.makedirs(os.path.join(settings.UPLOAD_DIR, "images"), exist_ok=True)
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -29,6 +31,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Mount static files directory
+app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
 
 # Import and include routers
 from app.api import router as api_router

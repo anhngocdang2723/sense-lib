@@ -1,0 +1,29 @@
+.admin-dashboard {
+  padding: 24px;
+}
+
+.admin-dashboard h1 {
+  margin-bottom: 24px;
+  color: #1a1a1a;
+  font-size: 24px;
+}
+
+.ant-card {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.ant-statistic-title {
+  color: #666;
+  font-size: 16px;
+}
+
+.ant-statistic-content {
+  color: #1a1a1a;
+  font-size: 24px;
+}
+
+.ant-statistic-content-prefix {
+  margin-right: 8px;
+  color: #1890ff;
+} 

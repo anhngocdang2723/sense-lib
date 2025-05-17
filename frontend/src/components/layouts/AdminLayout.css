@@ -1,0 +1,66 @@
+.admin-layout {
+  min-height: 100vh;
+}
+
+.admin-sider {
+  background: #001529;
+}
+
+.admin-logo {
+  height: 64px;
+  padding: 16px;
+  color: white;
+  text-align: center;
+  background: #002140;
+}
+
+.admin-logo h2 {
+  color: white;
+  margin: 0;
+  font-size: 18px;
+}
+
+.admin-header {
+  background: white;
+  padding: 0 24px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.admin-header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 100%;
+}
+
+.admin-header-content h1 {
+  margin: 0;
+  font-size: 20px;
+  color: #1a1a1a;
+}
+
+.admin-content {
+  margin: 24px;
+  padding: 24px;
+  background: #f0f2f5;
+  min-height: 280px;
+}
+
+.ant-menu-item {
+  margin: 0 !important;
+}
+
+.ant-menu-item a {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.ant-menu-item-selected a {
+  color: white;
+}
+
+.ant-menu-item:hover a {
+  color: white;
+} 
