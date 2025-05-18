@@ -1,0 +1,125 @@
+.container {
+  max-width: 1000px;
+  margin: 0 auto;
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding: 10px;
+  background: #f0f0f0;
+  border-radius: 5px;
+}
+
+.toolbar button {
+  padding: 8px 12px;
+  background: #4285f4;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-right: 5px;
+  transition: background-color 0.2s;
+}
+
+.toolbar button:hover {
+  background: #3367d6;
+}
+
+.toolbar input {
+  padding: 8px;
+  width: 50px;
+  text-align: center;
+}
+
+.toolbar .page-controls {
+  display: flex;
+  align-items: center;
+}
+
+.toolbar .zoom-controls {
+  display: flex;
+  align-items: center;
+}
+
+.search-container {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.search-container input {
+  padding: 8px;
+  width: 200px;
+  margin-right: 5px;
+}
+
+.search-container button {
+  padding: 8px 12px;
+  background: #4285f4;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-right: 5px;
+}
+
+.search-container button:hover {
+  background: #3367d6;
+}
+
+.search-info {
+  margin-left: 10px;
+  color: #666;
+}
+
+#pdf-canvas {
+  border: 1px solid #ddd;
+  margin: 0 auto;
+  display: block;
+}
+
+.canvas-container {
+  overflow: auto;
+  max-height: 800px;
+  text-align: center;
+}
+
+#save-progress {
+  background: #4CAF50 !important;
+}
+
+#save-progress:hover {
+  background: #45a049 !important;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .container {
+    padding: 10px;
+  }
+
+  .toolbar {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .search-container {
+    flex-wrap: wrap;
+  }
+
+  .search-container input {
+    width: 100%;
+    margin-bottom: 5px;
+  }
+
+  .canvas-container {
+    max-height: 500px;
+  }
+} 

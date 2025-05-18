@@ -64,19 +64,67 @@ class ReadingProgressType(str, Enum):
     TIME = "time"
     SECTION = "section"
 
+    def __str__(self):
+        return self.value
+
+    @classmethod
+    def _missing_(cls, value):
+        if isinstance(value, str):
+            value = value.lower()
+            for member in cls:
+                if member.value == value:
+                    return member
+        return None
+
 class ReadingProgressStatus(str, Enum):
     READING = "reading"
     COMPLETED = "completed"
     PAUSED = "paused"
+
+    def __str__(self):
+        return self.value
+
+    @classmethod
+    def _missing_(cls, value):
+        if isinstance(value, str):
+            value = value.lower()
+            for member in cls:
+                if member.value == value:
+                    return member
+        return None
 
 class ConflictResolution(str, Enum):
     LATEST = "latest"
     MERGE = "merge"
     MANUAL = "manual"
 
+    def __str__(self):
+        return self.value
+
+    @classmethod
+    def _missing_(cls, value):
+        if isinstance(value, str):
+            value = value.lower()
+            for member in cls:
+                if member.value == value:
+                    return member
+        return None
+
 class ConflictStatus(str, Enum):
     PENDING = "pending"
     RESOLVED = "resolved"
+
+    def __str__(self):
+        return self.value
+
+    @classmethod
+    def _missing_(cls, value):
+        if isinstance(value, str):
+            value = value.lower()
+            for member in cls:
+                if member.value == value:
+                    return member
+        return None
 
 class VoiceGender(str, Enum):
     MALE = "male"

@@ -168,3 +168,24 @@ async def create_admin_user(
             role=admin.role
         )
     )
+
+@router.post("/refresh")
+async def refresh_token(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+) -> Token:
+    """
+    Refresh access token
+    """
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": str(current_user.id)}, 
+        expires_delta=access_token_expires,
+        secret_key=settings.JWT_SECRET_KEY
+    )
+    
+    return Token(
+        access_token=access_token,
+        token_type="bearer",
+        user=current_user
+    )

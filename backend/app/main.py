@@ -34,6 +34,7 @@ app.add_middleware(
 
 # Mount static files directory
 app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
+app.mount("/audio", StaticFiles(directory=os.path.join(settings.UPLOAD_DIR, "audio")), name="audio")
 
 # Import and include routers
 from app.api import router as api_router

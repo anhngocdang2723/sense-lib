@@ -13,11 +13,12 @@ const axiosInstance = axios.create({
 // Request interceptor
 axiosInstance.interceptors.request.use(
   async (config) => {
-    const session = sessionService.getSession();
+    const token = localStorage.getItem('token');
+    console.log('Request token:', token);
     
-    // Add authorization header if session exists
-    if (session) {
-      config.headers['Authorization'] = `Bearer ${session.token}`;
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+      console.log('Request headers:', config.headers);
     }
     
     return config;
@@ -33,20 +34,25 @@ axiosInstance.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // If error is 401 and we haven't tried to refresh the session yet
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
       try {
-        // Try to refresh the session
-        await sessionService.refreshSession();
+        const refreshed = await sessionService.refreshSession();
+        if (refreshed) {
+          const token = localStorage.getItem('token');
+          if (token) {
+            originalRequest.headers['Authorization'] = `Bearer ${token}`;
+            return axiosInstance(originalRequest);
+          }
+        }
         
-        // Retry the original request
-        const session = sessionService.getSession();
-        originalRequest.headers['Authorization'] = `Bearer ${session.token}`;
-        return axiosInstance(originalRequest);
+        // Nếu refresh thất bại, chuyển về login
+        sessionService.clearSession();
+        window.location.href = '/login';
+        return Promise.reject(error);
       } catch (refreshError) {
-        // If refresh fails, clear session and redirect to login
+        console.error('Session refresh failed:', refreshError);
         sessionService.clearSession();
         window.location.href = '/login';
         return Promise.reject(refreshError);

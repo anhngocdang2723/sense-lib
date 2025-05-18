@@ -1,16 +1,19 @@
 from fastapi import APIRouter
-from .documents import router as documents_router
-from .sessions import router as sessions_router
-from .auth import router as auth_router
-from .users import router as users_router
-from .categories import router as categories_router
-from .tags import router as tags_router
-from .authors import router as authors_router
-from .languages import router as languages_router
-from .search import router as search_router
-from .access import router as access_router
-from .health import router as health_router
-from .publishers import router as publishers_router
+from . import (
+    auth,
+    users,
+    documents,
+    categories,
+    tags,
+    languages,
+    authors,
+    publishers,
+    favorites,
+    sessions,
+    access,
+    health,
+    search
+)
 
 # Define router configurations
 ROUTER_CONFIGS = {
@@ -31,15 +34,16 @@ ROUTER_CONFIGS = {
 router = APIRouter()
 
 # Include all routers with their configurations
-router.include_router(auth_router, **ROUTER_CONFIGS["auth"])
-router.include_router(users_router, **ROUTER_CONFIGS["users"])
-router.include_router(documents_router, **ROUTER_CONFIGS["documents"])
-router.include_router(categories_router, **ROUTER_CONFIGS["categories"])
-router.include_router(tags_router, **ROUTER_CONFIGS["tags"])
-router.include_router(authors_router, **ROUTER_CONFIGS["authors"])
-router.include_router(languages_router, **ROUTER_CONFIGS["languages"])
-router.include_router(search_router, **ROUTER_CONFIGS["search"])
-router.include_router(access_router, **ROUTER_CONFIGS["access"])
-router.include_router(health_router, **ROUTER_CONFIGS["health"])
-router.include_router(sessions_router, **ROUTER_CONFIGS["sessions"])
-router.include_router(publishers_router, **ROUTER_CONFIGS["publishers"])
+router.include_router(auth.router, **ROUTER_CONFIGS["auth"])
+router.include_router(users.router, **ROUTER_CONFIGS["users"])
+router.include_router(documents.router, **ROUTER_CONFIGS["documents"])
+router.include_router(categories.router, **ROUTER_CONFIGS["categories"])
+router.include_router(tags.router, **ROUTER_CONFIGS["tags"])
+router.include_router(languages.router, **ROUTER_CONFIGS["languages"])
+router.include_router(authors.router, **ROUTER_CONFIGS["authors"])
+router.include_router(publishers.router, **ROUTER_CONFIGS["publishers"])
+router.include_router(favorites.router, prefix="/favorites", tags=["favorites"])
+router.include_router(sessions.router, **ROUTER_CONFIGS["sessions"])
+router.include_router(access.router, **ROUTER_CONFIGS["access"])
+router.include_router(health.router, **ROUTER_CONFIGS["health"])
+router.include_router(search.router, **ROUTER_CONFIGS["search"])

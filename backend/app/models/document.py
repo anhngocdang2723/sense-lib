@@ -8,6 +8,7 @@ class Document(BaseModel):
     __tablename__ = "documents"
 
     title = Column(String, nullable=False, index=True)
+    slug = Column(String, unique=True, nullable=False, index=True)
     description = Column(Text, nullable=True)
     publisher_id = Column(UUID(as_uuid=True), ForeignKey("publishers.id"), nullable=True)
     publication_year = Column(Integer, nullable=True)
@@ -58,4 +59,5 @@ class Document(BaseModel):
         CheckConstraint("publication_year >= 1800 AND publication_year <= EXTRACT(YEAR FROM CURRENT_DATE)", name='check_publication_year'),
         CheckConstraint("isbn IS NULL OR (isbn ~ '^(?:[0-9]{10}|[0-9]{13}|[0-9]{3}-[0-9]{1,5}-[0-9]{1,7}-[0-9]{1,6}-[0-9])$')", name='check_isbn'),
         CheckConstraint("version ~ '^[0-9]+\\.[0-9]+(\\.[0-9]+)?$'", name='check_version_format'),
+        CheckConstraint('length(slug) >= 2', name='check_slug_length'),
     ) 

@@ -23,13 +23,15 @@ class Settings(BaseSettings):
     DEBUG: bool = os.getenv("DEBUG", "True").lower() == "true"
     
     # CORS settings - required from env
-    BACKEND_CORS_ORIGINS_STR: str = os.getenv("BACKEND_CORS_ORIGINS", "")
-    if not BACKEND_CORS_ORIGINS_STR:
-        raise ValueError("BACKEND_CORS_ORIGINS environment variable is not set")
-    
-    @property
-    def BACKEND_CORS_ORIGINS(self) -> List[str]:
-        return [origin.strip() for origin in self.BACKEND_CORS_ORIGINS_STR.split(",") if origin.strip()]
+    BACKEND_CORS_ORIGINS: List[str] = []
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        if not self.BACKEND_CORS_ORIGINS:
+            cors_origins = os.getenv("BACKEND_CORS_ORIGINS", "")
+            if not cors_origins:
+                raise ValueError("BACKEND_CORS_ORIGINS environment variable is not set")
+            self.BACKEND_CORS_ORIGINS = [origin.strip() for origin in cors_origins.split(",") if origin.strip()]
     
     # File upload settings - required from env
     UPLOAD_DIR: str = os.getenv("UPLOAD_DIR")

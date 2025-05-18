@@ -14,12 +14,47 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
+    console.log('Token in interceptor:', token);
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log('Request headers:', config.headers);
     }
     return config;
   },
   (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Add response interceptor to handle token refresh
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    // If error is 401 and we haven't tried to refresh token yet
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      try {
+        // Try to refresh token
+        const response = await api.post(endpoints.auth.refresh);
+        const { access_token } = response.data;
+
+        // Save new token
+        localStorage.setItem('token', access_token);
+
+        // Retry original request with new token
+        originalRequest.headers.Authorization = `Bearer ${access_token}`;
+        return api(originalRequest);
+      } catch (refreshError) {
+        // If refresh fails, redirect to login
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+        return Promise.reject(refreshError);
+      }
+    }
+
     return Promise.reject(error);
   }
 );
@@ -46,16 +81,20 @@ export const endpoints = {
   user: {
     profile: '/api/users/profile',
     updateProfile: '/api/users/profile',
+    forgotPassword: '/api/users/forgot-password',
+    resetPassword: '/api/users/reset-password',
   },
   // Document endpoints
   documents: {
-    list: '/api/documents/list/',
+    list: '/api/documents/list',
+    create: '/api/documents/upload',
     detail: (id) => `/api/documents/${id}`,
-    create: '/api/documents/upload/',
+    detailBySlug: (slug) => `/api/documents/slug/${slug}`,
     update: (id) => `/api/documents/${id}`,
     delete: (id) => `/api/documents/${id}`,
     summary: (id) => `/api/documents/${id}/summary`,
     audio: (id) => `/api/documents/${id}/audio`,
+    view: (id) => `/api/documents/${id}/view`,
   },
   // Category endpoints
   categories: {
@@ -98,6 +137,22 @@ export const endpoints = {
     detail: (id) => `/api/publishers/${id}`,
     update: (id) => `/api/publishers/${id}`,
     delete: (id) => `/api/publishers/${id}`,
+  },
+  favorites: {
+    add: '/api/favorites/',
+    remove: (id) => `/api/favorites/${id}`,
+    count: (id) => `/api/favorites/count/${id}`,
+    isFavorited: (id) => `/api/favorites/user/${id}`,
+  },
+  // Reading progress endpoints
+  readingProgress: {
+    create: '/api/reading-progress/',
+    list: '/api/reading-progress/',
+    get: (id) => `/api/reading-progress/${id}`,
+    update: (id) => `/api/reading-progress/${id}`,
+    delete: (id) => `/api/reading-progress/${id}`,
+    sync: '/api/reading-progress/sync',
+    resolveConflict: (id) => `/api/reading-progress/${id}/resolve-conflict`,
   },
 };
 

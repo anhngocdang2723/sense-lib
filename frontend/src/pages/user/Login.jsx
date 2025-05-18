@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getApiUrl, endpoints } from '../../api/api';
 import { sessionService } from '../../services/sessionService';
 import './login.css';
+import api from '../../api/api';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -54,13 +55,18 @@ const Login = () => {
       const url = `${getApiUrl(endpoints.user.forgotPassword)}?email=${encodeURIComponent(email)}`;
       const response = await fetch(url, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
+      
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.detail || 'Không gửi được email xác nhận');
+        throw new Error(errorData.detail || 'Không gửi được mã xác nhận');
       }
+      
       setIsOtpSent(true);
-      setSuccessMsg('Đã gửi mã xác nhận OTP đến email của bạn.');
+      setSuccessMsg('Đã gửi mã xác nhận đến email của bạn.');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -80,17 +86,21 @@ const Login = () => {
     try {
       const response = await fetch(getApiUrl(endpoints.user.resetPassword), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({
           email,
           code: otp,
-          new_password: password,
-        }),
+          new_password: password
+        })
       });
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.detail || 'Đổi mật khẩu thất bại');
       }
+
       setSuccessMsg('Đổi mật khẩu thành công!');
       setTimeout(() => {
         setIsForgot(false);
@@ -153,60 +163,59 @@ const Login = () => {
     setError('');
     setIsLoading(true);
     try {
-      // Step 1: Login to get access token
       const formData = new FormData();
       formData.append('username', email);
       formData.append('password', password);
 
-      const loginResponse = await fetch(getApiUrl(endpoints.auth.login), {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!loginResponse.ok) {
-        const errorData = await loginResponse.json();
-        throw new Error(errorData.detail || 'Đăng nhập thất bại');
-      }
-
-      const loginData = await loginResponse.json();
-      const accessToken = loginData.access_token;
-
-      // Step 2: Create session
-      const sessionData = {
-        token: accessToken,
-        user_agent: navigator.userAgent
-      };
-
-      const sessionResponse = await fetch(getApiUrl(endpoints.sessions.create), {
-        method: 'POST',
+      const response = await api.post('/api/auth/login', formData, {
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
-        },
-        body: JSON.stringify(sessionData)
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
       });
-
-      if (!sessionResponse.ok) {
-        throw new Error('Không thể tạo phiên đăng nhập');
-      }
-
-      const session = await sessionResponse.json();
-
-      // Step 3: Store all necessary data
-      localStorage.setItem('token', accessToken);
-      localStorage.setItem('user', JSON.stringify(loginData.user));
-      localStorage.setItem('userRole', loginData.user.role); // Store user role
-      sessionService.setSession(session);
       
-      // Step 4: Navigate based on user role
-      if (loginData.user.role === 'admin') {
-        navigate('/admin/dashboard');
-      } else {
-        navigate('/');
+      const { access_token, user } = response.data;
+      
+      // Log token data
+      console.log('Login response:', response.data);
+      console.log('Access token:', access_token);
+      
+      // Store token
+      localStorage.setItem('token', access_token);
+      console.log('Stored token:', localStorage.getItem('token'));
+      
+      // Create and store session
+      const session = {
+        token: access_token,
+        user: user,
+        userAgent: navigator.userAgent
+      };
+      
+      // Tạo session trước khi lưu
+      try {
+        const sessionResponse = await api.post('/api/sessions/', {
+          token: access_token,
+          user_agent: navigator.userAgent
+        });
+        
+        if (sessionResponse.data) {
+          session.id = sessionResponse.data.id;
+          session.expires_at = sessionResponse.data.expires_at;
+        }
+      } catch (sessionError) {
+        console.error('Session creation error:', sessionError);
+        // Vẫn tiếp tục lưu session local nếu tạo session thất bại
       }
-    } catch (err) {
-      setError(err.message);
-      console.error('Login error:', err);
+      
+      await sessionService.setSession(session);
+      
+      // Log stored data
+      console.log('Stored token:', localStorage.getItem('token'));
+      console.log('Stored session:', await sessionService.getSession());
+      
+      navigate('/');
+    } catch (error) {
+      console.error('Login error:', error);
+      setError(error.response?.data?.detail || 'Đăng nhập thất bại');
     } finally {
       setIsLoading(false);
     }

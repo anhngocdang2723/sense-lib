@@ -1,4 +1,5 @@
 import { getApiUrl, endpoints } from '../api/api';
+import axios from 'axios';
 
 class SessionService {
   getSession() {
@@ -7,7 +8,20 @@ class SessionService {
   }
 
   setSession(session) {
+    if (!session) return;
+    
+    // Lưu session
     localStorage.setItem('session', JSON.stringify(session));
+    
+    // Lưu token riêng
+    if (session.token) {
+      localStorage.setItem('token', session.token);
+    }
+    
+    // Lưu user data riêng
+    if (session.user) {
+      localStorage.setItem('user', JSON.stringify(session.user));
+    }
   }
 
   clearSession() {
@@ -27,29 +41,32 @@ class SessionService {
   async refreshSession() {
     try {
       const session = this.getSession();
-      if (!session) throw new Error('No active session');
-
-      const response = await fetch(getApiUrl(endpoints.sessions.create), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.token}`
-        },
-        body: JSON.stringify({
-          token: session.token,
-          user_agent: navigator.userAgent
-        })
+      if (!session?.token) {
+        throw new Error('No session found');
+      }
+      
+      console.log('Refreshing session:', session);
+      
+      const response = await axios.post(getApiUrl(endpoints.sessions.create), {
+        token: session.token,
+        user_agent: navigator.userAgent
       });
-
-      if (!response.ok) throw new Error('Failed to refresh session');
-
-      const newSession = await response.json();
-      this.setSession(newSession);
-      return newSession;
+      
+      console.log('Session refresh response:', response.data);
+      
+      if (response.data) {
+        const newSession = {
+          ...session,
+          ...response.data
+        };
+        this.setSession(newSession);
+        return true;
+      }
+      return false;
     } catch (error) {
-      console.error('Error refreshing session:', error);
+      console.error('Session refresh error:', error);
       this.clearSession();
-      throw error;
+      return false;
     }
   }
 

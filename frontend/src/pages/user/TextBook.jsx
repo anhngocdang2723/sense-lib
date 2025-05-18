@@ -13,7 +13,7 @@ const getFullImageUrl = (imageUrl) => {
 };
 
 function TextBook() {
-  const { id } = useParams();
+  const { slug } = useParams();
   const [book, setBook] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -25,18 +25,26 @@ function TextBook() {
         setLoading(true);
         setError(null);
         setImageError(false);
-        const response = await api.get(`${endpoints.documents.detail}/${id}`);
+        const response = await api.get(endpoints.documents.detailBySlug(slug));
+        if (!response.data) {
+          throw new Error('Không tìm thấy thông tin sách');
+        }
         setBook(response.data);
       } catch (err) {
         console.error('Error fetching book details:', err);
-        setError('Không thể tải thông tin sách. Vui lòng thử lại sau.');
+        setError(err.response?.data?.detail || 'Không thể tải thông tin sách. Vui lòng thử lại sau.');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchBookDetails();
-  }, [id]);
+    if (slug) {
+      fetchBookDetails();
+    } else {
+      setError('Không tìm thấy thông tin sách');
+      setLoading(false);
+    }
+  }, [slug]);
 
   const handleImageError = () => {
     setImageError(true);

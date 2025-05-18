@@ -5,6 +5,8 @@ import App from './App.jsx'
 import Login from './pages/user/Login.jsx'
 import Home from './pages/user/Home.jsx'
 import TextBook from './pages/user/TextBook.jsx'
+import DocumentDetail from './pages/user/DocumentDetail.jsx'
+import DocumentReader from './pages/user/DocumentReader.jsx'
 import AdminLayout from './components/layouts/AdminLayout'
 import AdminDashboard from './pages/admin/Dashboard'
 import AdminDocuments from './pages/admin/Documents'
@@ -59,6 +61,16 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           <Route path="text-book/:id" element={
             <UserRoute>
               <TextBook />
+            </UserRoute>
+          } />
+          <Route path="document/:slug" element={
+            <UserRoute>
+              <DocumentDetail />
+            </UserRoute>
+          } />
+          <Route path="read/:slug" element={
+            <UserRoute>
+              <DocumentReader />
             </UserRoute>
           } />
         </Route>

@@ -35,12 +35,12 @@ def create_access_token(
     else:
         expire = datetime.utcnow() + timedelta(minutes=15)
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
     return encoded_jwt
 
 def verify_token(token: str) -> Any:
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
         return payload
     except jwt.JWTError:
         return None
@@ -58,21 +58,25 @@ async def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
+        print("Received token:", token)
         payload = jwt.decode(
             token,
-            settings.SECRET_KEY,
-            algorithms=[settings.ALGORITHM]
+            settings.JWT_SECRET_KEY,
+            algorithms=[settings.JWT_ALGORITHM]
         )
-        username: str = payload.get("sub")
-        if username is None:
+        print("Decoded payload:", payload)
+        user_id: str = payload.get("sub")
+        if user_id is None:
             raise credentials_exception
-        token_data = TokenData(username=username)
-    except JWTError:
-        raise credentials_exception
-    
-    # Truy vấn user từ database
-    from ..models.user import User
-    user = db.query(User).filter(User.username == token_data.username).first()
-    if not user:
-        raise credentials_exception
-    return user 
+        
+        # Thêm logging cho user query
+        from ..models.user import User
+        user = db.query(User).filter(User.id == user_id).first()
+        print("Found user:", user)
+        if not user:
+            print("User not found in database")
+            raise credentials_exception
+        return user
+    except JWTError as e:
+        print("JWT Error:", str(e))
+        raise credentials_exception 

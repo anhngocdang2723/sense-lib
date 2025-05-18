@@ -31,6 +31,7 @@ from app.services.document import DocumentService
 # from app.services.vector import VectorStore
 from app.schemas.author import AuthorResponse
 from app.schemas.tag import TagResponse
+from app.services.slug import SlugService
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -217,22 +218,22 @@ async def get_document(
     """
     Get document details by ID
     """
-    document = db.query(Document).filter(Document.id == document_id).first()
+    document = db.query(Document).options(
+        joinedload(Document.authors),
+        joinedload(Document.tags),
+        joinedload(Document.category),
+        joinedload(Document.publisher),
+        joinedload(Document.language_rel),
+        joinedload(Document.added_by_user),
+    ).filter(Document.id == document_id).first()
     if not document:
         raise HTTPException(
             status_code=404,
             detail="Document not found"
         )
-    
-    # Update view count
     document.view_count += 1
     db.commit()
-    
-    return DocumentResponse(
-        **document.__dict__,
-        authors=[AuthorResponse.from_orm(a) for a in getattr(document, 'authors', [])],
-        tags=[TagResponse.from_orm(t) for t in getattr(document, 'tags', [])],
-    )
+    return DocumentResponse.from_orm(document)
 
 @router.put("/{document_id}", response_model=DocumentResponse)
 async def update_document(
@@ -254,6 +255,12 @@ async def update_document(
 
     update_data = document_data.dict(exclude_unset=True)
     print(f"[DEBUG] Update fields for document {document_id}: {update_data}")
+    
+    # Handle title update and slug generation
+    if 'title' in update_data:
+        base_slug = SlugService.convert_to_slug(update_data['title'])
+        update_data['slug'] = SlugService.generate_unique_slug(db, Document, base_slug, str(document_id))
+    
     for field, value in update_data.items():
         if field == 'tag_ids' and value is not None:
             document.tags.clear()
@@ -536,4 +543,73 @@ async def get_document_audio(
         logger.error(f"Audio not found for document {document_id}")
         raise HTTPException(status_code=404, detail="Audio not found")
     
-    return audio 
+    return audio
+
+@router.post("/{document_id}/view")
+def increase_view(
+    document_id: UUID = Path(...),
+    db: Session = Depends(get_db)
+):
+    document = db.query(Document).filter(Document.id == document_id).first()
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    document.view_count += 1
+    db.commit()
+    return {"view_count": document.view_count}
+
+@router.get("/slug/{slug}", response_model=DocumentResponse)
+async def get_document_by_slug(
+    slug: str,
+    db: Session = Depends(get_db)
+) -> DocumentResponse:
+    """
+    Get document by slug
+    """
+    document = db.query(Document).options(
+        joinedload(Document.authors),
+        joinedload(Document.tags),
+        joinedload(Document.category),
+        joinedload(Document.publisher),
+        joinedload(Document.language_rel),
+        joinedload(Document.added_by_user),
+        joinedload(Document.audio_files),
+    ).filter(Document.slug == slug).first()
+    if not document:
+        raise HTTPException(
+            status_code=404,
+            detail="Document not found"
+        )
+    return DocumentResponse(
+        id=document.id,
+        title=document.title,
+        slug=document.slug,
+        description=document.description,
+        publisher_id=document.publisher_id,
+        publication_year=document.publication_year,
+        isbn=document.isbn,
+        category_id=document.category_id,
+        language=document.language,
+        version=document.version,
+        access_level=document.access_level,
+        image_url=document.image_url,
+        file_name=document.file_name,
+        file_type=document.file_type,
+        file_size=document.file_size,
+        file_hash=document.file_hash,
+        status=document.status,
+        download_count=document.download_count,
+        view_count=document.view_count,
+        is_featured=document.is_featured,
+        ai_summary=document.ai_summary,
+        added_by=document.added_by,
+        created_at=document.created_at,
+        updated_at=document.updated_at,
+        category=document.category,
+        publisher=document.publisher,
+        file_type_rel=document.file_type_rel,
+        language_rel=document.language_rel,
+        added_by_user=document.added_by_user,
+        authors=[AuthorResponse.from_orm(a) for a in getattr(document, 'authors', [])],
+        tags=[TagResponse.from_orm(t) for t in getattr(document, 'tags', [])],
+        audio_files=[DocumentAudioBase.from_orm(a) for a in getattr(document, 'audio_files', [])],
+    ) 

@@ -71,4 +71,8 @@ class ReadingProgress(BaseModel):
         Index('idx_reading_progress_sync_version', 'sync_version'),
         Index('idx_reading_progress_user_document_section', 'user_id', 'document_id', 'section_id'),
         Index('idx_reading_progress_conflict', 'conflict_status'),
+        Index('idx_reading_progress_type', 'progress_type'),
+        Index('idx_reading_progress_status', 'status'),
+        Index('idx_reading_progress_device', 'device_id'),
+        Index('idx_reading_progress_session', 'session_id'),
     ) 

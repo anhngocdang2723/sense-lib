@@ -1,7 +1,9 @@
-import { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import './Home.css';
 import api, { endpoints } from '../../api/api';
 import placeholderImage from '../../assets/img/card/1.png'; // Using card/1.png as placeholder
+import { Link, useNavigate } from 'react-router-dom';
+import { sessionService } from '../../services/sessionService';
 
 // Hàm lấy URL ảnh chuẩn
 const getFullImageUrl = (imageUrl) => {
@@ -12,12 +14,14 @@ const getFullImageUrl = (imageUrl) => {
 };
 
 function Home() {
+  const navigate = useNavigate();
   const booksRef = useRef(null);
   const levelBooksRef = useRef(null);
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [imageErrors, setImageErrors] = useState({});
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
   const handleImageError = (docId) => {
     setImageErrors(prev => ({ ...prev, [docId]: true }));
@@ -63,13 +67,19 @@ function Home() {
     }
   };
 
+  const handleBookClick = (e, doc) => {
+    if (!sessionService.isSessionValid()) {
+      e.preventDefault();
+      setShowLoginPrompt(true);
+      setTimeout(() => {
+        setShowLoginPrompt(false);
+      }, 3000);
+    }
+  };
+
   const renderBookCard = (doc) => (
     <div className="book-card modern-card" key={doc.id} role="group" aria-roledescription="slide">
-      <a 
-        href={`/text-book/${doc.id}`} 
-        title={doc.title}
-        className="book-link"
-      >
+      <Link to={`/document/${doc.slug}`} onClick={(e) => handleBookClick(e, doc)}>
         <div className="image-container card-image-container">
           <img 
             src={getImageUrl(doc)}
@@ -102,7 +112,7 @@ function Home() {
             </div>
           </div>
         </div>
-      </a>
+      </Link>
     </div>
   );
 
@@ -130,6 +140,12 @@ function Home() {
 
   return (
     <div className="container">
+      {showLoginPrompt && (
+        <div className="login-prompt">
+          <p>Vui lòng đăng nhập để xem nội dung sách</p>
+          <button onClick={() => navigate('/login')}>Đăng nhập</button>
+        </div>
+      )}
       <div className="hero-container">
         <div className="hero-banner">
           <h1 className="hero-title">Thư viện số SenseLib</h1>

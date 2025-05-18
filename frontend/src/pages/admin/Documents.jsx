@@ -4,6 +4,7 @@ import { EditOutlined, DeleteOutlined, UploadOutlined, FileTextOutlined, EyeOutl
 import api, { endpoints, getApiUrl } from '../../api/api';
 import './Documents.css';
 import dayjs from 'dayjs';
+import { Link } from 'react-router-dom';
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -438,17 +439,19 @@ const AdminDocuments = () => {
       sortDirections: ['ascend', 'descend'],
       ...getColumnSearchProps('title', 'Tiêu đề'),
       render: (text, record) => (
-        <Space direction="vertical" size="small">
-          <Space>
-            <span>{text}</span>
-            {record.status === 'INACTIVE' && <Tag color="red">Không hoạt động</Tag>}
-          </Space>
-          {record.code && (
-            <Space size="small">
-              <Tag color="blue">{record.code}</Tag>
+        <Link to={`/document/${record.slug}`} title={text}>
+          <Space direction="vertical" size="small">
+            <Space>
+              <span>{text}</span>
+              {record.status === 'INACTIVE' && <Tag color="red">Không hoạt động</Tag>}
             </Space>
-          )}
-        </Space>
+            {record.code && (
+              <Space size="small">
+                <Tag color="blue">{record.code}</Tag>
+              </Space>
+            )}
+          </Space>
+        </Link>
       )
     },
     { 

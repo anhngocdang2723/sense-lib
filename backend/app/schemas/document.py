@@ -10,8 +10,22 @@ from app.schemas.user import UserResponse
 from app.schemas.author import AuthorResponse
 from app.schemas.tag import TagResponse
 
+class DocumentAudioBase(BaseModel):
+    language: str
+    voice_id: str
+    file_url: str
+    duration_seconds: int = Field(gt=0)
+    file_size: int = Field(gt=0)
+
+    class Config:
+        from_attributes = True
+
+class DocumentQABase(BaseModel):
+    ...
+
 class DocumentBase(BaseModel):
     title: str
+    slug: str = Field(..., min_length=2)
     description: Optional[str] = None
     publisher_id: Optional[UUID4] = None
     publication_year: Optional[int] = Field(None, ge=1800, le=datetime.now().year)
@@ -35,6 +49,7 @@ class DocumentCreateResponse(DocumentBase):
 
 class DocumentUpdate(BaseModel):
     title: Optional[str] = None
+    slug: Optional[str] = Field(None, min_length=2)
     description: Optional[str] = None
     publisher_id: Optional[UUID4] = None
     publication_year: Optional[int] = Field(None, ge=1800, le=datetime.now().year)
@@ -71,6 +86,7 @@ class DocumentResponse(DocumentBase):
     image_url: Optional[str] = None
     authors: Optional[List[AuthorResponse]] = []
     tags: Optional[List[TagResponse]] = []
+    audio_files: Optional[List[DocumentAudioBase]] = []
 
     class Config:
         from_attributes = True
@@ -97,17 +113,4 @@ class DocumentSectionBase(BaseModel):
     title: str
     section_number: int = Field(gt=0)
     start_position: Optional[float] = None
-    end_position: Optional[float] = None
-
-class DocumentAudioBase(BaseModel):
-    language: str
-    voice_id: str
-    file_url: str
-    duration_seconds: int = Field(gt=0)
-    file_size: int = Field(gt=0)
-
-class DocumentQABase(BaseModel):
-    question: str
-    answer: str
-    context: Optional[str] = None
-    language: str 
+    end_position: Optional[float] = None 

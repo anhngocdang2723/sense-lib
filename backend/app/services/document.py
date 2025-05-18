@@ -24,6 +24,7 @@ from app.core.exceptions import (
 from app.services.summary_service import SummaryService
 from app.services.audio_service import AudioService
 from app.services.pdf_service import PDFService
+from app.services.slug import SlugService
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -499,6 +500,12 @@ class DocumentService:
             logger.info("Validating document data")
             await DocumentService.validate_document_data(db, data, file, current_user)
 
+            # Generate slug from title
+            logger.info("Generating slug from title")
+            base_slug = SlugService.convert_to_slug(data.title)
+            slug = SlugService.generate_unique_slug(db, Document, base_slug)
+            logger.info(f"Generated slug: {slug}")
+
             # Calculate file hash
             logger.info("Calculating file hash")
             file_hash = await DocumentProcessor.get_file_hash(file)
@@ -601,7 +608,8 @@ class DocumentService:
                     "file_type": file_type.id,
                     "added_by": current_user.id,
                     "status": DocumentStatus.PENDING,
-                    "image_url": image_url
+                    "image_url": image_url,
+                    "slug": slug  # Add the generated slug
                 })
                 
                 # Create document

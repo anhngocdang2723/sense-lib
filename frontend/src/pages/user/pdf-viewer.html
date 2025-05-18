@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDF Viewer</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      padding: 10px;
+      background: #f0f0f0;
+      border-radius: 5px;
+    }
+    .toolbar button {
+      padding: 8px 12px;
+      background: #4285f4;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 5px;
+    }
+    .toolbar button:hover {
+      background: #3367d6;
+    }
+    .toolbar input {
+      padding: 8px;
+      width: 50px;
+      text-align: center;
+    }
+    .toolbar .page-controls {
+      display: flex;
+      align-items: center;
+    }
+    .toolbar .zoom-controls {
+      display: flex;
+      align-items: center;
+    }
+    .search-container {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .search-container input {
+      padding: 8px;
+      width: 200px;
+      margin-right: 5px;
+    }
+    #pdf-canvas {
+      border: 1px solid #ddd;
+      margin: 0 auto;
+      display: block;
+    }
+    #pdf-upload {
+      margin-bottom: 15px;
+    }
+    .info-text {
+      color: #555;
+      font-size: 14px;
+    }
+    .canvas-container {
+      overflow: auto;
+      max-height: 800px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>PDF Viewer</h1>
+    
+    <div id="pdf-upload">
+      <input type="file" id="file-input" accept=".pdf" />
+      <p class="info-text">Select a PDF file or drag & drop it here</p>
+    </div>
+    
+    <div class="search-container">
+      <input type="text" id="search-input" placeholder="Search in PDF..." />
+      <button id="search-btn">Search</button>
+      <button id="prev-match">Previous</button>
+      <button id="next-match">Next</button>
+      <span id="search-info"></span>
+    </div>
+    
+    <div class="toolbar">
+      <div class="page-controls">
+        <button id="prev-page">Previous</button>
+        <span>Page <input type="number" id="current-page" min="1" value="1"> of <span id="page-count">0</span></span>
+        <button id="next-page">Next</button>
+      </div>
+      
+      <div class="zoom-controls">
+        <button id="zoom-out">-</button>
+        <span id="zoom-level">100%</span>
+        <button id="zoom-in">+</button>
+        <button id="rotate-btn">Rotate</button>
+      </div>
+    </div>
+    
+    <div class="canvas-container">
+      <canvas id="pdf-canvas"></canvas>
+    </div>
+    
+    <div id="pdf-text" style="display: none;"></div>
+  </div>
+
+  <script>
+    // Set worker path to pdf.js
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+    
+    // Variables
+    let pdfDoc = null;
+    let pageNum = 1;
+    let pageRendering = false;
+    let pageNumPending = null;
+    let scale = 1.0;
+    let rotation = 0;
+    let canvas = document.getElementById('pdf-canvas');
+    let ctx = canvas.getContext('2d');
+    let currentSearchTerm = '';
+    let searchMatches = [];
+    let currentMatchIndex = -1;
+    
+    // Load the PDF
+    function loadPDF(file) {
+      const fileReader = new FileReader();
+      
+      fileReader.onload = function() {
+        const typedarray = new Uint8Array(this.result);
+        
+        // Initialize the PDF.js viewer
+        pdfjsLib.getDocument(typedarray).promise.then(function(pdf) {
+          pdfDoc = pdf;
+          document.getElementById('page-count').textContent = pdf.numPages;
+          document.getElementById('current-page').max = pdf.numPages;
+          
+          // Initial render
+          renderPage(pageNum);
+          
+          // Extract text for search
+          extractTextFromPDF(pdf);
+        }).catch(function(error) {
+          console.error('Error loading PDF:', error);
+          alert('Error loading PDF: ' + error.message);
+        });
+      };
+      
+      fileReader.readAsArrayBuffer(file);
+    }
+    
+    // Render the page
+    function renderPage(num) {
+      pageRendering = true;
+      
+      // Update UI
+      document.getElementById('current-page').value = num;
+      
+      pdfDoc.getPage(num).then(function(page) {
+        // Calculate viewport based on scale and rotation
+        const viewport = page.getViewport({ scale: scale, rotation: rotation });
+        
+        // Adjust canvas size
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+        
+        // Render the PDF page
+        const renderContext = {
+          canvasContext: ctx,
+          viewport: viewport
+        };
+        
+        page.render(renderContext).promise.then(function() {
+          pageRendering = false;
+          
+          // Process pending page if any
+          if (pageNumPending !== null) {
+            renderPage(pageNumPending);
+            pageNumPending = null;
+          }
+          
+          // Highlight search matches if available
+          if (searchMatches.length > 0) {
+            highlightSearchMatches();
+          }
+        });
+      });
+    }
+    
+    // Queue rendering of the next page
+    function queueRenderPage(num) {
+      if (pageRendering) {
+        pageNumPending = num;
+      } else {
+        renderPage(num);
+      }
+    }
+    
+    // Previous page function
+    function prevPage() {
+      if (pageNum <= 1) {
+        return;
+      }
+      pageNum--;
+      queueRenderPage(pageNum);
+    }
+    
+    // Next page function
+    function nextPage() {
+      if (pageNum >= pdfDoc.numPages) {
+        return;
+      }
+      pageNum++;
+      queueRenderPage(pageNum);
+    }
+    
+    // Zoom functions
+    function zoomIn() {
+      scale += 0.25;
+      updateZoomDisplay();
+      queueRenderPage(pageNum);
+    }
+    
+    function zoomOut() {
+      if (scale <= 0.5) return;
+      scale -= 0.25;
+      updateZoomDisplay();
+      queueRenderPage(pageNum);
+    }
+    
+    function updateZoomDisplay() {
+      document.getElementById('zoom-level').textContent = Math.round(scale * 100) + '%';
+    }
+    
+    // Rotate function
+    function rotatePage() {
+      rotation = (rotation + 90) % 360;
+      queueRenderPage(pageNum);
+    }
+    
+    // Extract text for search functionality
+    function extractTextFromPDF(pdf) {
+      const textContainer = document.getElementById('pdf-text');
+      textContainer.innerHTML = '';
+      
+      // Loop through pages
+      for (let i = 1; i <= pdf.numPages; i++) {
+        pdf.getPage(i).then(function(page) {
+          page.getTextContent().then(function(textContent) {
+            const pageDiv = document.createElement('div');
+            pageDiv.setAttribute('data-page', i);
+            
+            textContent.items.forEach(function(item) {
+              const textDiv = document.createElement('div');
+              textDiv.textContent = item.str;
+              textDiv.style.position = 'absolute';
+              // Store position info for highlighting
+              textDiv.setAttribute('data-x', item.transform[4]);
+              textDiv.setAttribute('data-y', item.transform[5]);
+              textDiv.setAttribute('data-width', item.width);
+              textDiv.setAttribute('data-height', item.height);
+              
+              pageDiv.appendChild(textDiv);
+            });
+            
+            textContainer.appendChild(pageDiv);
+          });
+        });
+      }
+    }
+    
+    // Search function
+    function searchInPDF() {
+      const searchTerm = document.getElementById('search-input').value.toLowerCase();
+      currentSearchTerm = searchTerm;
+      
+      if (!searchTerm) {
+        alert('Please enter a search term');
+        return;
+      }
+      
+      searchMatches = [];
+      currentMatchIndex = -1;
+      
+      // Find all instances of the search term
+      const textElements = document.querySelectorAll('#pdf-text div div');
+      
+      textElements.forEach(function(element) {
+        const text = element.textContent.toLowerCase();
+        if (text.includes(searchTerm)) {
+          const page = parseInt(element.parentNode.getAttribute('data-page'));
+          const x = parseFloat(element.getAttribute('data-x'));
+          const y = parseFloat(element.getAttribute('data-y'));
+          const width = parseFloat(element.getAttribute('data-width'));
+          const height = parseFloat(element.getAttribute('data-height'));
+          
+          searchMatches.push({ page, x, y, width, height, text });
+        }
+      });
+      
+      // Update search info
+      document.getElementById('search-info').textContent = 
+        searchMatches.length > 0 ? 
+        `Found ${searchMatches.length} matches` : 
+        'No matches found';
+      
+      // Navigate to first match if found
+      if (searchMatches.length > 0) {
+        currentMatchIndex = 0;
+        navigateToMatch(currentMatchIndex);
+      }
+    }
+    
+    function navigateToMatch(index) {
+      if (index < 0 || index >= searchMatches.length) return;
+      
+      const match = searchMatches[index];
+      
+      // Go to the page containing the match
+      if (pageNum !== match.page) {
+        pageNum = match.page;
+        queueRenderPage(pageNum);
+      } else {
+        highlightSearchMatches();
+      }
+      
+      // Update search info
+      document.getElementById('search-info').textContent = 
+        `Match ${index + 1} of ${searchMatches.length}`;
+    }
+    
+    function highlightSearchMatches() {
+      if (searchMatches.length === 0) return;
+      
+      // Get current page matches
+      const currentPageMatches = searchMatches.filter(match => match.page === pageNum);
+      
+      // Draw highlights
+      currentPageMatches.forEach(function(match, i) {
+        const viewport = pdfDoc.getPage(pageNum).getViewport({ scale: scale, rotation: rotation });
+        const isCurrentMatch = searchMatches.indexOf(match) === currentMatchIndex;
+        
+        // Transform coordinates according to current viewport
+        const transform = viewport.transform;
+        const x = transform[0] * match.x + transform[2] * match.y + transform[4];
+        const y = transform[1] * match.x + transform[3] * match.y + transform[5];
+        
+        // Draw highlight rectangle
+        ctx.beginPath();
+        ctx.rect(x, y - match.height, match.width * scale, match.height);
+        ctx.fillStyle = isCurrentMatch ? 'rgba(255, 165, 0, 0.5)' : 'rgba(255, 255, 0, 0.3)';
+        ctx.fill();
+      });
+    }
+    
+    function prevMatch() {
+      if (currentMatchIndex > 0) {
+        currentMatchIndex--;
+        navigateToMatch(currentMatchIndex);
+      }
+    }
+    
+    function nextMatch() {
+      if (currentMatchIndex < searchMatches.length - 1) {
+        currentMatchIndex++;
+        navigateToMatch(currentMatchIndex);
+      }
+    }
+    
+    // Event listeners
+    document.getElementById('file-input').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (file && file.type === 'application/pdf') {
+        loadPDF(file);
+      } else {
+        alert('Please select a valid PDF file.');
+      }
+    });
+    
+    // Drag and drop functionality
+    const container = document.querySelector('.container');
+    
+    container.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      container.style.background = '#e9e9e9';
+    });
+    
+    container.addEventListener('dragleave', function() {
+      container.style.background = 'white';
+    });
+    
+    container.addEventListener('drop', function(e) {
+      e.preventDefault();
+      container.style.background = 'white';
+      
+      const file = e.dataTransfer.files[0];
+      if (file && file.type === 'application/pdf') {
+        document.getElementById('file-input').files = e.dataTransfer.files;
+        loadPDF(file);
+      } else {
+        alert('Please drop a valid PDF file.');
+      }
+    });
+    
+    document.getElementById('prev-page').addEventListener('click', prevPage);
+    document.getElementById('next-page').addEventListener('click', nextPage);
+    document.getElementById('current-page').addEventListener('change', function() {
+      const pageNum = parseInt(this.value);
+      if (pageNum >= 1 && pageNum <= pdfDoc.numPages) {
+        queueRenderPage(pageNum);
+      }
+    });
+    
+    document.getElementById('zoom-in').addEventListener('click', zoomIn);
+    document.getElementById('zoom-out').addEventListener('click', zoomOut);
+    document.getElementById('rotate-btn').addEventListener('click', rotatePage);
+    
+    document.getElementById('search-btn').addEventListener('click', searchInPDF);
+    document.getElementById('search-input').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        searchInPDF();
+      }
+    });
+    
+    document.getElementById('prev-match').addEventListener('click', prevMatch);
+    document.getElementById('next-match').addEventListener('click', nextMatch);
+  </script>
+</body>
+</html>
