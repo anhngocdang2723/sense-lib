@@ -1,0 +1,135 @@
+.admin-users {
+  padding: 24px;
+}
+
+.admin-users-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.admin-users-header h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+/* Stats Cards */
+.stats-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.stat-card-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.stat-card-icon {
+  font-size: 24px;
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.stat-card-info {
+  flex: 1;
+}
+
+.stat-card-title {
+  color: rgba(0, 0, 0, 0.45);
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.stat-card-value {
+  font-size: 24px;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.85);
+}
+
+/* Table Card */
+.table-card {
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* Table styles */
+.admin-users .ant-table {
+  background: transparent;
+}
+
+.admin-users .ant-table-thead > tr > th {
+  background: #fafafa;
+  font-weight: 600;
+}
+
+/* Modal styles */
+.admin-users .ant-modal-content {
+  border-radius: 8px;
+}
+
+.admin-users .ant-modal-header {
+  border-radius: 8px 8px 0 0;
+}
+
+/* Form styles */
+.admin-users .ant-form-item-label {
+  font-weight: 500;
+}
+
+/* Button styles */
+.admin-users .ant-btn {
+  border-radius: 4px;
+}
+
+/* Tag styles */
+.admin-users .ant-tag {
+  border-radius: 4px;
+  padding: 2px 8px;
+}
+
+/* Switch styles */
+.admin-users .ant-switch {
+  min-width: 44px;
+}
+
+/* Search input styles */
+.admin-users .ant-input-search {
+  border-radius: 4px;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .admin-users {
+    padding: 16px;
+  }
+
+  .admin-users-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .admin-users-header h1 {
+    font-size: 20px;
+  }
+
+  .stats-cards {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .stat-card-value {
+    font-size: 20px;
+  }
+} 

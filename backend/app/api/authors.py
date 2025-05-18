@@ -37,23 +37,15 @@ def list_authors(
     skip: int = 0,
     limit: int = 100,
     status: Optional[str] = None,
-    include_inactive: bool = False,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin_user)
 ):
-    """List all authors (admin only)
-    - include_inactive: if True, include inactive authors in the response
-    """
+    """List all authors (admin only)"""
     query = db.query(Author)
-    
     if status:
         query = query.filter(Author.status == status)
-    elif not include_inactive:
-        query = query.filter(Author.status == AuthorStatus.ACTIVE)
-    
-    # Order by name
+    # Không filter theo ACTIVE nữa, luôn trả về tất cả
     query = query.order_by(Author.name)
-    
     return query.offset(skip).limit(limit).all()
 
 @router.get("/{author_id}", response_model=AuthorResponse)

@@ -14,33 +14,58 @@ import AdminAuthors from './pages/admin/Authors'
 import AdminTags from './pages/admin/Tags'
 import AdminPublishers from './pages/admin/Publishers'
 import AdminCategories from './pages/admin/Categories'
+import AdminUsers from './pages/admin/AdminUsers'
 import 'antd/dist/reset.css' // Import Ant Design CSS
 import './index.css'
 
 // Protected Route component
 const ProtectedRoute = ({ children }) => {
   const isAuthenticated = localStorage.getItem('token'); // Check if user is logged in
-  const isAdmin = localStorage.getItem('userRole') === 'admin'; // Check if user is admin
+  const isAdmin = localStorage.getItem('userRole') === 'ADMIN'; // Check if user is admin
+
+  console.log('ProtectedRoute check:', {
+    isAuthenticated,
+    isAdmin,
+    userRole: localStorage.getItem('userRole')
+  });
 
   if (!isAuthenticated) {
+    console.log('Not authenticated, redirecting to login');
     return <Navigate to="/login" replace />;
   }
 
   if (!isAdmin) {
+    console.log('Not admin, redirecting to home');
     return <Navigate to="/" replace />;
   }
 
+  console.log('Admin access granted');
   return children;
 };
 
 // User Route component
 const UserRoute = ({ children }) => {
   const isAuthenticated = localStorage.getItem('token');
+  const isAdmin = localStorage.getItem('userRole') === 'ADMIN';
+  
+  console.log('UserRoute check:', {
+    isAuthenticated,
+    isAdmin,
+    userRole: localStorage.getItem('userRole')
+  });
   
   if (!isAuthenticated) {
+    console.log('Not authenticated, redirecting to login');
     return <Navigate to="/login" replace />;
   }
 
+  // Nếu là admin, chuyển hướng đến dashboard
+  if (isAdmin) {
+    console.log('Admin detected, redirecting to dashboard');
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+
+  console.log('User access granted');
   return children;
 };
 
@@ -91,7 +116,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           <Route path="tags" element={<AdminTags />} />
           <Route path="publishers" element={<AdminPublishers />} />
           <Route path="categories" element={<AdminCategories />} />
+          <Route path="users" element={<AdminUsers />} />
         </Route>
+
+        {/* Catch all route - redirect to login if not authenticated */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
   </React.StrictMode>,

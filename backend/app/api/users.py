@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Path, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, Query, Path, BackgroundTasks, Body
 from typing import List, Any, Optional
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
@@ -262,4 +262,39 @@ async def change_password(
     
     db.commit()
     
-    return {"message": "Password has been changed successfully"} 
+    return {"message": "Password has been changed successfully"}
+
+@router.put("/{user_id}", response_model=UserResponse)
+async def update_user(
+    user_id: UUID = Path(...),
+    user_update: UserUpdate = Body(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+) -> UserResponse:
+    """
+    Update user information (admin only)
+    """
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=403,
+            detail="Not authorized to update user information"
+        )
+    
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found"
+        )
+    
+    try:
+        # Update user fields
+        for field, value in user_update.dict(exclude_unset=True).items():
+            setattr(user, field, value)
+        
+        db.commit()
+        db.refresh(user)
+        return user
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e)) 

@@ -183,14 +183,27 @@ const AdminAuthors = () => {
       filters: [
         { text: 'Hoạt động', value: 'ACTIVE' },
         { text: 'Không hoạt động', value: 'INACTIVE' },
+        { text: 'Đang chờ duyệt', value: 'PENDING' },
+        { text: 'Đã bị từ chối', value: 'REJECTED' },
+        { text: 'Đã bị khóa', value: 'BLOCKED' }
       ],
       onFilter: (value, record) => record.status === value,
       render: (_, record) => {
         const statusColors = {
           'ACTIVE': 'green',
-          'INACTIVE': 'red'
+          'INACTIVE': 'red',
+          'PENDING': 'orange',
+          'REJECTED': 'volcano',
+          'BLOCKED': 'black'
         };
-        return <Tag color={statusColors[record.status] || 'default'}>{record.status}</Tag>;
+        const statusTexts = {
+          'ACTIVE': 'Hoạt động',
+          'INACTIVE': 'Không hoạt động',
+          'PENDING': 'Đang chờ duyệt',
+          'REJECTED': 'Đã bị từ chối',
+          'BLOCKED': 'Đã bị khóa'
+        };
+        return <Tag color={statusColors[record.status] || 'default'}>{statusTexts[record.status] || record.status}</Tag>;
       }
     },
     {

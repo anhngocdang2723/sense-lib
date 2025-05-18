@@ -49,6 +49,7 @@ axiosInstance.interceptors.response.use(
         
         // Nếu refresh thất bại, chuyển về login
         sessionService.clearSession();
+        const userRole = localStorage.getItem('userRole');
         window.location.href = '/login';
         return Promise.reject(error);
       } catch (refreshError) {

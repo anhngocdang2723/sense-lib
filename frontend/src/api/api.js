@@ -31,23 +31,28 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    console.log('Response error:', error.response?.status, error.response?.data);
 
     // If error is 401 and we haven't tried to refresh token yet
     if (error.response?.status === 401 && !originalRequest._retry) {
+      console.log('Attempting to refresh token...');
       originalRequest._retry = true;
 
       try {
         // Try to refresh token
         const response = await api.post(endpoints.auth.refresh);
         const { access_token } = response.data;
+        console.log('Token refreshed successfully');
 
         // Save new token
         localStorage.setItem('token', access_token);
+        console.log('New token stored:', localStorage.getItem('token'));
 
         // Retry original request with new token
         originalRequest.headers.Authorization = `Bearer ${access_token}`;
         return api(originalRequest);
       } catch (refreshError) {
+        console.error('Token refresh failed:', refreshError);
         // If refresh fails, redirect to login
         localStorage.removeItem('token');
         window.location.href = '/login';
@@ -78,6 +83,15 @@ export const endpoints = {
     }
   },
   // User endpoints
+  users: {
+    list: '/api/users/list',
+    create: '/api/users/create',
+    detail: (id) => `/api/users/${id}`,
+    update: (id) => `/api/users/${id}`,
+    delete: (id) => `/api/users/${id}`,
+    updateStatus: (id) => `/api/users/${id}/status`,
+    updateRole: (id) => `/api/users/${id}/role`,
+  },
   user: {
     profile: '/api/users/profile',
     updateProfile: '/api/users/profile',
@@ -122,7 +136,14 @@ export const endpoints = {
     dashboard: {
       stats: '/api/admin/dashboard/stats',
     },
-    // ... other admin endpoints
+    users: {
+      list: '/api/admin/users',
+      create: '/api/admin/users',
+      update: (id) => `/api/admin/users/${id}`,
+      delete: (id) => `/api/admin/users/${id}`,
+      updateStatus: (id) => `/api/admin/users/${id}/status`,
+      updateRole: (id) => `/api/admin/users/${id}/role`,
+    }
   },
   tags: {
     list: '/api/tags/',

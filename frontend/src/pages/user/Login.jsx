@@ -178,10 +178,12 @@ const Login = () => {
       // Log token data
       console.log('Login response:', response.data);
       console.log('Access token:', access_token);
+      console.log('User data:', user);
+      console.log('User role:', user.role);
       
       // Store token
       localStorage.setItem('token', access_token);
-      console.log('Stored token:', localStorage.getItem('token'));
+      console.log('Token stored:', localStorage.getItem('token'));
       
       // Create and store session
       const session = {
@@ -203,16 +205,26 @@ const Login = () => {
         }
       } catch (sessionError) {
         console.error('Session creation error:', sessionError);
-        // Vẫn tiếp tục lưu session local nếu tạo session thất bại
       }
       
+      // Lưu session và user data
       await sessionService.setSession(session);
       
       // Log stored data
       console.log('Stored token:', localStorage.getItem('token'));
       console.log('Stored session:', await sessionService.getSession());
+      console.log('Stored user:', JSON.parse(localStorage.getItem('user')));
+      console.log('Stored userRole:', localStorage.getItem('userRole'));
       
-      navigate('/');
+      // Check user role and redirect accordingly
+      console.log('Checking user role for redirection:', user.role);
+      if (user.role === 'ADMIN') {
+        console.log('Redirecting to admin dashboard');
+        navigate('/admin/dashboard');
+      } else {
+        console.log('Redirecting to home');
+        navigate('/');
+      }
     } catch (error) {
       console.error('Login error:', error);
       setError(error.response?.data?.detail || 'Đăng nhập thất bại');

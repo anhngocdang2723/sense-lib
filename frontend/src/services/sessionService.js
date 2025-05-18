@@ -21,6 +21,8 @@ class SessionService {
     // Lưu user data riêng
     if (session.user) {
       localStorage.setItem('user', JSON.stringify(session.user));
+      // Thêm role vào localStorage để dễ truy cập
+      localStorage.setItem('userRole', session.user.role ? session.user.role.toUpperCase() : '');
     }
   }
 
@@ -28,6 +30,7 @@ class SessionService {
     localStorage.removeItem('session');
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('userRole');
   }
 
   isSessionValid() {
