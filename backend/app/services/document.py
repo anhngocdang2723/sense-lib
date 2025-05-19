@@ -490,7 +490,8 @@ class DocumentService:
         data: DocumentCreate,
         file: UploadFile,
         current_user: User,
-        image: Optional[UploadFile] = None
+        image: Optional[UploadFile] = None,
+        is_user_upload: bool = False
     ) -> Document:
         """Process and save document with all validations"""
         logger.info("Starting document processing and saving")
@@ -607,9 +608,9 @@ class DocumentService:
                     "file_size": len(content),
                     "file_type": file_type.id,
                     "added_by": current_user.id,
-                    "status": DocumentStatus.PENDING,
+                    "status": DocumentStatus.PENDING,  # Always start as PENDING for user uploads
                     "image_url": image_url,
-                    "slug": slug  # Add the generated slug
+                    "slug": slug
                 })
                 
                 # Create document
@@ -619,174 +620,122 @@ class DocumentService:
                 db.refresh(db_document)
                 logger.info(f"Document instance created with ID: {db_document.id}")
 
-                # Add authors if provided
-                if author_ids:
-                    logger.info(f"Adding {len(author_ids)} authors to document")
-                    for author_id in author_ids:
-                        author = db.query(Author).filter(Author.id == author_id).first()
-                        if author:
-                            db_document.authors.append(author)
-                    db.commit()
-                    logger.info("Authors added successfully")
+                # For user uploads, we don't process the document further
+                if is_user_upload:
+                    logger.info("User upload detected - skipping further processing")
+                    return db_document
 
-                # Add tags if provided
-                if tag_ids:
-                    logger.info(f"Adding {len(tag_ids)} tags to document")
-                    for tag_id in tag_ids:
-                        tag = db.query(Tag).filter(Tag.id == tag_id).first()
-                        if tag:
-                            db_document.tags.append(tag)
-                    db.commit()
-                    logger.info("Tags added successfully")
-
-            except Exception as e:
-                logger.error(f"Database error: {str(e)}")
-                raise DatabaseError(
-                    "Failed to create document record",
-                    data={"error": str(e)}
-                )
-
-            # Process document using DocumentProcessor
-            logger.info("Starting document processing")
-            processor = DocumentProcessor()
-            chunks, metadata_list = processor.process_file(file_path, db)
-            
-            if not chunks:
-                logger.error("Document processing failed - no chunks generated")
-                db_document.status = DocumentStatus.REJECTED
-                db.commit()
-                raise FileProcessingError(
-                    "Failed to process document content",
-                    data={"document_id": str(db_document.id)}
-                )
-            logger.info(f"Document processed into {len(chunks)} chunks")
-
-            # Generate summary from the first chunk (or combine chunks if needed)
-            logger.info("Generating document summary")
-            summary_service = SummaryService()
-            summary = await summary_service.generate_summary(" ".join(chunks))
-            db_document.ai_summary = summary
-            
-            # Comment out vector store operations
-            """
-            # Add to vector store
-            try:
-                logger.info("Initializing vector store")
-                vector_store = VectorStore(
-                    qdrant_url=settings.QDRANT_URL,
-                    qdrant_api_key=settings.QDRANT_API_KEY
-                )
+                # Process document using DocumentProcessor
+                logger.info("Starting document processing")
+                processor = DocumentProcessor()
+                chunks, metadata_list = processor.process_file(file_path, db)
                 
-                logger.info("Storing document chunks in vector store")
-                success = vector_store.store_documents(chunks, metadata_list)
-                if not success:
-                    logger.error("Failed to store document in vector store")
-                    raise VectorizationError(
-                        "Failed to store document in vector store",
+                if not chunks:
+                    logger.error("Document processing failed - no chunks generated")
+                    db_document.status = DocumentStatus.REJECTED
+                    db.commit()
+                    raise FileProcessingError(
+                        "Failed to process document content",
                         data={"document_id": str(db_document.id)}
                     )
-                
-                logger.info("Document successfully stored in vector store")
-                db_document.status = DocumentStatus.AVAILABLE
-                db.commit()
-                logger.info("Document status updated to AVAILABLE")
-            except Exception as e:
-                logger.error(f"Vector store operation failed: {str(e)}", exc_info=True)
-                db_document.status = DocumentStatus.REJECTED
-                db.commit()
-                raise VectorizationError(
-                    "Document saved but vectorization failed",
-                    data={
-                        "document_id": str(db_document.id),
-                        "error": str(e)
-                    }
-                )
-            """
+                logger.info(f"Document processed into {len(chunks)} chunks")
 
-            # Generate audio from summary
-            logger.info("Generating audio from summary")
-            audio_service = AudioService()
-            
-            # Create introduction text with book title
-            intro_text = f"Sau đây là bản tóm tắt của {db_document.title}"
-            # Remove author check since it's not in the model
-            intro_text += ". "
-            
-            # Combine introduction with summary
-            full_text = intro_text + summary
-            
-            # Get default voice for the language
-            default_voice = db.query(Voice).filter(
-                Voice.language == data.language,
-                Voice.is_active == True
-            ).first()
-            
-            if not default_voice:
-                logger.warning(f"No default voice found for language {data.language}, using system default")
-                current_time = datetime.utcnow()
-                default_voice = Voice(
-                    id=settings.DEFAULT_VOICE_ID,
-                    name="Default Voice",
+                # Generate summary from the first chunk (or combine chunks if needed)
+                logger.info("Generating document summary")
+                summary_service = SummaryService()
+                summary = await summary_service.generate_summary(" ".join(chunks))
+                db_document.ai_summary = summary
+
+                # Generate audio from summary
+                logger.info("Generating audio from summary")
+                audio_service = AudioService()
+                
+                # Create introduction text with book title
+                intro_text = f"Sau đây là bản tóm tắt của {db_document.title}"
+                intro_text += ". "
+                
+                # Combine introduction with summary
+                full_text = intro_text + summary
+                
+                # Get default voice for the language
+                default_voice = db.query(Voice).filter(
+                    Voice.language == data.language,
+                    Voice.is_active == True
+                ).first()
+                
+                if not default_voice:
+                    logger.warning(f"No default voice found for language {data.language}, using system default")
+                    current_time = datetime.utcnow()
+                    default_voice = Voice(
+                        id=settings.DEFAULT_VOICE_ID,
+                        name="Default Voice",
+                        language=data.language,
+                        provider="gTTS",
+                        is_active=True,
+                        created_at=current_time,
+                        updated_at=current_time,
+                        gender=None
+                    )
+                    try:
+                        db.add(default_voice)
+                        db.commit()
+                        logger.info(f"Created default voice for language {data.language}")
+                    except Exception as e:
+                        logger.error(f"Error creating default voice: {str(e)}")
+                        db.rollback()
+                        raise DatabaseError(
+                            "Failed to create default voice",
+                            data={"error": str(e)}
+                        )
+                
+                # Generate audio using original filename
+                original_filename = os.path.splitext(db_document.file_name)[0]
+                audio_result = await audio_service.generate_audio(
+                    text=full_text,
                     language=data.language,
-                    provider="gTTS",
-                    is_active=True,
-                    created_at=current_time,
-                    updated_at=current_time,
-                    gender=None  # Optional field
+                    filename=original_filename
                 )
+                
+                # Create audio record
+                current_time = datetime.utcnow()
+                document_audio = DocumentAudio(
+                    document_id=db_document.id,
+                    language=data.language,
+                    voice_id=default_voice.id,
+                    file_url=audio_result["file_url"],
+                    duration_seconds=audio_result["duration_seconds"],
+                    file_size=audio_result["file_size"],
+                    status=DocumentAudioStatus.COMPLETED,
+                    created_at=current_time,
+                    updated_at=current_time
+                )
+                
                 try:
-                    db.add(default_voice)
+                    db.add(document_audio)
                     db.commit()
-                    logger.info(f"Created default voice for language {data.language}")
+                    logger.info(f"Audio record created successfully for document {db_document.id}")
                 except Exception as e:
-                    logger.error(f"Error creating default voice: {str(e)}")
+                    logger.error(f"Error creating audio record: {str(e)}")
                     db.rollback()
                     raise DatabaseError(
-                        "Failed to create default voice",
+                        "Failed to create audio record",
                         data={"error": str(e)}
                     )
-            
-            # Generate audio using original filename
-            original_filename = os.path.splitext(db_document.file_name)[0]  # Remove extension
-            audio_result = await audio_service.generate_audio(
-                text=full_text,
-                language=data.language,
-                filename=original_filename
-            )
-            
-            # Create audio record with all required fields
-            current_time = datetime.utcnow()
-            document_audio = DocumentAudio(
-                document_id=db_document.id,
-                language=data.language,
-                voice_id=default_voice.id,
-                file_url=audio_result["file_url"],
-                duration_seconds=audio_result["duration_seconds"],
-                file_size=audio_result["file_size"],
-                status=DocumentAudioStatus.COMPLETED,
-                created_at=current_time,
-                updated_at=current_time
-            )
-            
-            try:
-                db.add(document_audio)
-                db.commit()
-                logger.info(f"Audio record created successfully for document {db_document.id}")
-            except Exception as e:
-                logger.error(f"Error creating audio record: {str(e)}")
-                db.rollback()
-                raise DatabaseError(
-                    "Failed to create audio record",
-                    data={"error": str(e)}
-                )
 
-            # Update document status and commit
-            db_document.status = DocumentStatus.AVAILABLE
-            db.commit()
-            
-            logger.info("Document processing completed successfully")
-            return db_document
-            
+                # Update document status and commit
+                db_document.status = DocumentStatus.AVAILABLE
+                db.commit()
+                
+                logger.info("Document processing completed successfully")
+                return db_document
+                
+            except Exception as e:
+                logger.error(f"Error in document processing: {str(e)}")
+                if 'db_document' in locals():
+                    db_document.status = DocumentStatus.REJECTED
+                    db.commit()
+                raise
+
         except Exception as e:
             logger.error(f"Error in document processing: {str(e)}")
             if 'db_document' in locals():

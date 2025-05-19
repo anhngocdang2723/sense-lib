@@ -28,6 +28,7 @@ export default function DocumentReader() {
   const [loading, setLoading] = useState(true);
   const [document, setDocument] = useState(null);
   const [readingProgress, setReadingProgress] = useState(null);
+  const [downloadCount, setDownloadCount] = useState(0);
 
   useEffect(() => {
     const fetchDocument = async () => {
@@ -35,6 +36,7 @@ export default function DocumentReader() {
       try {
         const res = await api.get(endpoints.documents.detailBySlug(slug));
         setDocument(res.data);
+        setDownloadCount(res.data.download_count || 0);
         
         if (!res.data.file_name) {
           throw new Error("Không tìm thấy file PDF");
@@ -79,6 +81,11 @@ export default function DocumentReader() {
     }
   };
 
+  // Handle download count update
+  const handleDownloadCountUpdate = (newCount) => {
+    setDownloadCount(newCount);
+  };
+
   return (
     <div style={{ width: "100vw", minHeight: "100vh", background: "#f5f5f5", padding: 0 }}>
       <div style={{ maxWidth: 1100, margin: "0 auto", background: "#fff", borderRadius: 12, boxShadow: "0 4px 24px #0002", padding: 0, marginTop: 32, marginBottom: 32 }}>
@@ -96,9 +103,14 @@ export default function DocumentReader() {
             )}
           </div>
           {pdfUrl && (
-            <a href={pdfUrl} target="_blank" rel="noopener noreferrer" download style={{ color: '#fff', fontSize: 18, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.12)', padding: '8px 16px', borderRadius: 6, fontWeight: 500 }}>
-              <DownloadOutlined /> Tải PDF
-            </a>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{ color: '#fff', fontSize: 14 }}>
+                {downloadCount} lượt tải
+              </span>
+              <a href={pdfUrl} target="_blank" rel="noopener noreferrer" download style={{ color: '#fff', fontSize: 18, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.12)', padding: '8px 16px', borderRadius: 6, fontWeight: 500 }}>
+                <DownloadOutlined /> Tải PDF
+              </a>
+            </div>
           )}
         </div>
         {/* Mô tả */}
@@ -132,6 +144,7 @@ export default function DocumentReader() {
               pdfUrl={pdfUrl} 
               documentId={document?.id} 
               onProgressUpdate={handleReadingProgress}
+              onDownloadCountUpdate={handleDownloadCountUpdate}
             />
           )}
         </div>

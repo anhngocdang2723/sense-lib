@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { getApiUrl, endpoints } from '../../api/api';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { message } from 'antd';
+import { useAuth } from '../../contexts/AuthContext';
 import { sessionService } from '../../services/sessionService';
 import './login.css';
 import api from '../../api/api';
@@ -18,6 +19,8 @@ const Login = () => {
   const [successMsg, setSuccessMsg] = useState('');
   const [isRegister, setIsRegister] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const { login } = useAuth();
 
   const handleForgotClick = (e) => {
     e.preventDefault();
@@ -158,44 +161,30 @@ const Login = () => {
     }
   };
 
-  const handleLoginSubmit = async (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    setError('');
     setIsLoading(true);
+    setError('');
+
     try {
-      const formData = new FormData();
+      // Sử dụng URLSearchParams cho form data
+      const formData = new URLSearchParams();
       formData.append('username', email);
       formData.append('password', password);
+      formData.append('grant_type', 'password');
 
-      const response = await api.post('/api/auth/login', formData, {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
-        }
-      });
-      
-      const { access_token, user } = response.data;
-      
-      // Log token data
-      console.log('Login response:', response.data);
-      console.log('Access token:', access_token);
-      console.log('User data:', user);
-      console.log('User role:', user.role);
-      
-      // Store token
-      localStorage.setItem('token', access_token);
-      console.log('Token stored:', localStorage.getItem('token'));
+      const userData = await login(formData);
       
       // Create and store session
       const session = {
-        token: access_token,
-        user: user,
+        token: localStorage.getItem('token'),
+        user: userData,
         userAgent: navigator.userAgent
       };
       
-      // Tạo session trước khi lưu
       try {
         const sessionResponse = await api.post('/api/sessions/', {
-          token: access_token,
+          token: session.token,
           user_agent: navigator.userAgent
         });
         
@@ -207,24 +196,13 @@ const Login = () => {
         console.error('Session creation error:', sessionError);
       }
       
-      // Lưu session và user data
       await sessionService.setSession(session);
       
-      // Log stored data
-      console.log('Stored token:', localStorage.getItem('token'));
-      console.log('Stored session:', await sessionService.getSession());
-      console.log('Stored user:', JSON.parse(localStorage.getItem('user')));
-      console.log('Stored userRole:', localStorage.getItem('userRole'));
+      // Get the redirect path from location state or use default based on role
+      const from = location.state?.from?.pathname || (userData.role.toUpperCase() === 'ADMIN' ? '/admin/dashboard' : '/');
       
-      // Check user role and redirect accordingly
-      console.log('Checking user role for redirection:', user.role);
-      if (user.role === 'ADMIN') {
-        console.log('Redirecting to admin dashboard');
-        navigate('/admin/dashboard');
-      } else {
-        console.log('Redirecting to home');
-        navigate('/');
-      }
+      message.success('Đăng nhập thành công!');
+      navigate(from, { replace: true });
     } catch (error) {
       console.error('Login error:', error);
       setError(error.response?.data?.detail || 'Đăng nhập thất bại');
@@ -352,7 +330,7 @@ const Login = () => {
                 />
               </div>
             )}
-            <form onSubmit={isForgot ? (isOtpSent ? handleForgotSubmit : handleSendOtp) : handleLoginSubmit}>
+            <form onSubmit={isForgot ? (isOtpSent ? handleForgotSubmit : handleSendOtp) : handleLogin}>
               <div className="form-group">
                 <label htmlFor="password">{isForgot ? 'Mật khẩu mới' : 'Mật khẩu'}</label>
                 <input

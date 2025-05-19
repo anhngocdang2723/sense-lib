@@ -950,10 +950,14 @@ CREATE TABLE public.documents (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone,
     image_url character varying,
+    slug character varying(255) NOT NULL,
+    score integer DEFAULT 0,
+    expires_at timestamp without time zone,
     CONSTRAINT check_file_size CHECK ((file_size > 0)),
     CONSTRAINT check_isbn CHECK (((isbn IS NULL) OR ((isbn)::text ~ '^(?:[0-9]{10}|[0-9]{13}|[0-9]{3}-[0-9]{1,5}-[0-9]{1,7}-[0-9]{1,6}-[0-9])$'::text))),
     CONSTRAINT check_publication_year CHECK (((publication_year >= 1800) AND ((publication_year)::numeric <= EXTRACT(year FROM CURRENT_DATE)))),
-    CONSTRAINT check_version_format CHECK (((version)::text ~ '^[0-9]+\.[0-9]+(\.[0-9]+)?$'::text))
+    CONSTRAINT check_version_format CHECK (((version)::text ~ '^[0-9]+\.[0-9]+(\.[0-9]+)?$'::text)),
+    CONSTRAINT documents_score_check CHECK ((score >= 0))
 );
 
 
@@ -1052,6 +1056,46 @@ CREATE TABLE public.notifications (
 
 
 ALTER TABLE public.notifications OWNER TO postgres;
+
+--
+-- Name: payment; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.payment (
+    id integer NOT NULL,
+    transaction_code character varying(50) NOT NULL,
+    is_add smallint NOT NULL,
+    user_id uuid NOT NULL,
+    amount money NOT NULL,
+    balance money NOT NULL,
+    at_time timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT payment_is_add_check CHECK ((is_add = ANY (ARRAY[0, 1])))
+);
+
+
+ALTER TABLE public.payment OWNER TO postgres;
+
+--
+-- Name: payment_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.payment_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.payment_id_seq OWNER TO postgres;
+
+--
+-- Name: payment_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.payment_id_seq OWNED BY public.payment.id;
+
 
 --
 -- Name: publishers; Type: TABLE; Schema: public; Owner: postgres
@@ -1284,10 +1328,12 @@ CREATE TABLE public.users (
     id uuid NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone,
+    score integer DEFAULT 0,
     CONSTRAINT check_email_format CHECK (((email)::text ~ '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'::text)),
     CONSTRAINT check_email_length CHECK ((length((email)::text) >= 5)),
     CONSTRAINT check_failed_attempts CHECK ((failed_login_attempts >= 0)),
-    CONSTRAINT check_username_length CHECK ((length((username)::text) >= 3))
+    CONSTRAINT check_username_length CHECK ((length((username)::text) >= 3)),
+    CONSTRAINT users_score_check CHECK ((score >= 0))
 );
 
 
@@ -1334,6 +1380,13 @@ CREATE TABLE public.website_links (
 ALTER TABLE public.website_links OWNER TO postgres;
 
 --
+-- Name: payment id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.payment ALTER COLUMN id SET DEFAULT nextval('public.payment_id_seq'::regclass);
+
+
+--
 -- Data for Name: access_logs; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -1362,7 +1415,7 @@ Nguyễn Nhật Ánh	Nguyễn Nhật Ánh (sinh ngày 7 tháng 5 năm 1955 tại
 Trần Trọng Kim	\N	\N	\N	\N	\N	\N	ACTIVE	366d48ec-b229-48ff-908c-c4ae17432ec8	2025-05-17 12:37:02.384186+00	\N	tran-trong-kim
 Penguin	\N	\N	\N	\N	\N	\N	ACTIVE	a09003ba-2925-4c63-8dc4-2783747c7d4b	2025-05-17 13:04:50.957602+00	\N	penguin
 Vũ Bằng	\N	\N	\N	\N	\N	\N	ACTIVE	443a52b8-bdbf-4d6f-a89a-fbbd2ad05be4	2025-05-17 13:06:02.259649+00	\N	vu-bang
-Khuyết danh	\N	\N	\N	\N	\N	\N	ACTIVE	ac1ba08b-231a-48fe-b1dc-60fc0ab4d48d	2025-05-17 13:19:44.44183+00	\N	khuyet-danh
+Khuyết danh	\N	\N	\N	\N	\N	\N	INACTIVE	ac1ba08b-231a-48fe-b1dc-60fc0ab4d48d	2025-05-17 13:19:44.44183+00	2025-05-18 02:42:01.859564+00	khuyet-danh
 \.
 
 
@@ -1393,6 +1446,7 @@ COPY public.comments (document_id, user_id, parent_id, content, status, is_edite
 --
 
 COPY public.document_access (document_id, user_id, granted_at, expiry_date, status, access_count, last_accessed, extension_count, revoked_at, id, created_at, updated_at) FROM stdin;
+d3d6d95b-38a0-44a4-81a1-da53541f97de	c87e42ab-cf7d-462f-9d46-e3509295ccf9	2025-05-18 00:51:24.454716+00	\N	ACTIVE	0	\N	0	\N	e53a4252-d446-47c0-8c47-c0e6b221acd4	2025-05-18 00:51:24.454716+00	\N
 \.
 
 
@@ -1418,6 +1472,7 @@ ae1a745c-d568-4912-9cb6-2f6b3ff677e6	899a57c7-89a4-416a-88a2-848f200cba3f	\N	f1f
 17c90271-0a10-4748-b515-d0358474766f	366d48ec-b229-48ff-908c-c4ae17432ec8	\N	c66d5505-1e0b-41b3-aaa6-2e88168c27e6	2025-05-17 12:48:12.837703+00
 d3d6d95b-38a0-44a4-81a1-da53541f97de	443a52b8-bdbf-4d6f-a89a-fbbd2ad05be4	\N	8123244e-5e02-4cdb-9e91-b43853f9089a	2025-05-17 13:12:23.076225+00
 baca8ffa-fd59-43aa-9075-0719b66636b4	ac1ba08b-231a-48fe-b1dc-60fc0ab4d48d	\N	9db5989f-f06f-464c-bcf7-4e183083eb4d	2025-05-17 13:20:37.752813+00
+04397913-1f61-4159-bda4-75e6a4ac8e45	ac1ba08b-231a-48fe-b1dc-60fc0ab4d48d	\N	e8091778-5a93-4870-852c-d4d10abf0bea	2025-05-18 02:41:35.700857+00
 \.
 
 
@@ -1469,17 +1524,17 @@ baca8ffa-fd59-43aa-9075-0719b66636b4	0d45e92c-e666-44ad-a702-78fa1a0375ee	dd55f4
 -- Data for Name: documents; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.documents (title, description, publisher_id, publication_year, isbn, file_name, file_hash, file_type, file_size, status, category_id, access_level, language, version, download_count, view_count, is_featured, ai_summary, added_by, id, created_at, updated_at, image_url) FROM stdin;
-Test Document	Test Document	\N	2020	1234567890	1747188335_test document.txt	e5ad4e210e3f4ee04e035a42263c4a5c	40fdbd91-fe7c-430a-a1d7-6e2b7ca8d772	4039	PENDING	6f487384-1e01-458d-8c86-d9bfcec3525b	PUBLIC	vi	1.0	0	0	f	\N	f99fb4fe-b6ee-4f06-945c-852c9524c082	04397913-1f61-4159-bda4-75e6a4ac8e45	2025-05-14 09:05:35.209438+00	\N	\N
-Test Document 02	Test Document 02	\N	2001	0919838199	1747268351_document02.txt	d75487fb972293552b8230f3d93dafc7	40fdbd91-fe7c-430a-a1d7-6e2b7ca8d772	2323	PENDING	6f487384-1e01-458d-8c86-d9bfcec3525b	PUBLIC	vi	1.0	0	0	f	\N	f99fb4fe-b6ee-4f06-945c-852c9524c082	437117d0-4524-471c-a3c6-7e04dd7e6352	2025-05-15 07:19:11.285443+00	\N	\N
-Test Document 01	Test Document 01	\N	2000	0919838188	1747268663_document01 - Copy.txt	2d3c1cb48fdc2a663ad7a647c60b1033	40fdbd91-fe7c-430a-a1d7-6e2b7ca8d772	3478	PENDING	6f487384-1e01-458d-8c86-d9bfcec3525b	PUBLIC	vi	1.0	0	0	f	\N	f99fb4fe-b6ee-4f06-945c-852c9524c082	9838e346-b46a-47d7-a087-b915e803c91c	2025-05-15 07:24:23.892511+00	\N	\N
-Test Document 03	Test Document 03	\N	2003	0919838103	1747269544_Document 03.txt	32613b3ddc4eb2e7a64534d6ffdb2766	40fdbd91-fe7c-430a-a1d7-6e2b7ca8d772	2819	AVAILABLE	6f487384-1e01-458d-8c86-d9bfcec3525b	PUBLIC	vi	1.0	0	0	f	\N	f99fb4fe-b6ee-4f06-945c-852c9524c082	346fab5f-7681-441c-a11e-72ccada48508	2025-05-15 07:39:04.079869+00	2025-05-15 07:39:12.299525+00	\N
-Tuổi trẻ đáng giá bao nhiêu	Sách về Tuổi trẻ đáng giá bao nhiêu	805844a9-74cc-4498-933f-9de4d09cad0f	2020	9786045229	1747420308_Tuổi trẻ đáng giá bao nhiêu.pdf	62c9aea51febd265d015ae78a4cab053	3d7a13bf-7383-4764-9160-4afa676a2057	597614	AVAILABLE	7bc26412-d096-4bdc-a8b7-8c4407a5e845	PUBLIC	vi	1.0	0	0	f	Tuổi trẻ là giai đoạn quý giá để phát triển bản thân và định hình tương lai, như được nhấn mạnh trong tác phẩm “Tuổi trẻ đáng giá bao nhiêu?” của Rosie Nguyễn. Tác giả bày tỏ tiếc nuối khi nhiều người trẻ lãng phí thời gian vào những thú vui vô bổ mà không nhận ra giá trị của thời gian – tài sản không thể thay thế. Nhìn lại ở ngưỡng 30, tác giả mong muốn được quay lại tuổi mười tám, đôi mươi để sống ý nghĩa hơn, đầu tư vào sức khỏe thông qua các hoạt động như chạy bộ, bơi lội hay yoga, bởi một cơ thể khỏe mạnh không chỉ nâng cao thể chất mà còn cải thiện tinh thần. Hơn nữa, việc đọc sách được xem là cách hiệu quả để tích lũy tri thức, mở rộng tầm nhìn và tạo động lực hành động, đặc biệt với các nguồn tài liệu miễn phí như ebook hay các trang web như Sachvui.Com. Chỉ cần duy trì thói quen đọc một cuốn sách mỗi tuần, kiến thức sẽ tăng đáng kể sau một năm.\n\nBên cạnh đó, học trực tuyến qua các nền tảng MOOC như Coursera, edX hay Khan Academy mang lại cơ hội tiếp cận giáo trình chất lượng từ các trường đại học hàng đầu, với nhiều chủ đề đa dạng và hoàn toàn miễn phí. Đây là xu hướng giáo dục tương lai, cho phép người học tự chọn thời gian, không cần di chuyển và bổ sung kỹ năng thực tế. Ngoài ra, tuổi trẻ còn là thời điểm lý tưởng để trải nghiệm du lịch bụi, kết nối với cộng đồng toàn cầu qua các nền tảng như Couchsurfing, giúp tiết kiệm chi phí và mang lại những kỷ niệm khó quên. Những chuyến đi không chỉ mở rộng tầm nhìn mà còn giúp người trẻ hiểu sâu hơn về con người và cuộc sống, như câu chuyện về một sinh viên khám phá Campuchia và Thái Lan chỉ với 2 triệu đồng nhờ sự can đảm bước ra khỏi vùng an toàn.\n\nHơn nữa, tham gia các hoạt động tình nguyện và công việc làm thêm trong độ tuổi hai mươi cũng đóng vai trò quan trọng trong việc rèn luyện kỹ năng và xây dựng mối quan hệ. Các tổ chức như AIESEC hay các câu lạc bộ du lịch như Hanoi Kids Tours cung cấp cơ hội phát triển kỹ năng giao tiếp, khám phá sở thích cá nhân và thể hiện lòng biết ơn. Đồng	f99fb4fe-b6ee-4f06-945c-852c9524c082	ae1a745c-d568-4912-9cb6-2f6b3ff677e6	2025-05-17 01:31:48.440549+00	2025-05-17 10:43:20.885846+00	\N
-Truyện cổ tích Hà Nhi	\N	\N	1995	978-604-58-6841-1	1747440161_truyen-co-tich-ha-nhi.pdf	ace95f767aac5e14a6506c641bb578c2	3d7a13bf-7383-4764-9160-4afa676a2057	26783715	REJECTED	6f487384-1e01-458d-8c86-d9bfcec3525b	PUBLIC	vi	1.0	0	0	f	\N	f99fb4fe-b6ee-4f06-945c-852c9524c082	ec55ebcd-70b0-4d6e-9cad-62b6c9de8da6	2025-05-17 07:02:41.883584+00	2025-05-17 07:02:43.446385+00	/uploads/images/1747440161_truyen-co-tich-ha-nhi_cover.jpg
-Cẩm nang chăm sóc trẻ	\N	\N	2020	978-604-1-26257-9	1747440431_cam-nang-cham-soc-tre.pdf	261afec40b8f499c5174d811434777fe	3d7a13bf-7383-4764-9160-4afa676a2057	402434	AVAILABLE	6f487384-1e01-458d-8c86-d9bfcec3525b	PUBLIC	vi	1.0	0	0	f	"Cẩm nang Chăm sóc Trẻ em" cung cấp những hướng dẫn toàn diện và thiết thực cho phụ huynh trong việc nuôi dưỡng, bảo vệ sức khỏe và đảm bảo an toàn cho trẻ ở các độ tuổi khác nhau. Trước hết, về dinh dưỡng, tài liệu giới thiệu các thực đơn cụ thể như 16 món ăn cho trẻ 12-24 tháng, cùng hàng loạt món cháo, canh và món mặn giàu dinh dưỡng (từ 228 đến 329 calo mỗi khẩu phần) với công thức chế biến chi tiết, đảm bảo cung cấp năng lượng và dưỡng chất cần thiết cho sự phát triển của trẻ. Các nguyên liệu chủ yếu bao gồm gạo, protein từ thịt, cá, trứng, và rau củ, được chế biến đơn giản, dễ tiêu hóa, phù hợp với trẻ nhỏ.\n\nBên cạnh dinh dưỡng, cẩm nang nhấn mạnh tầm quan trọng của việc chăm sóc sức khỏe toàn diện. Về giấc ngủ, tài liệu đưa ra các giải pháp giúp trẻ hình thành thói quen ngủ đúng giờ qua chương trình 7 ngày, khuyến khích cha mẹ tạo môi trường yên tĩnh, duy trì lịch trình đều đặn, và hạn chế các thói quen phụ thuộc như bế ru hay cho bú khi ngủ. Giấc ngủ được nhấn mạnh là yếu tố then chốt cho sự phát triển não bộ, đặc biệt trong 3 năm đầu đời khi 80% sự phát triển diễn ra. Ngoài ra, chăm sóc răng miệng cũng được chú trọng, với hướng dẫn phòng ngừa sâu răng bằng vệ sinh đúng cách, sử dụng kem đánh răng chứa fluoride phù hợp độ tuổi, và tránh các thói quen xấu như ăn kẹo thường xuyên. Các vấn đề như hôi miệng và mọc răng cũng được đề cập, kèm theo cách xử lý triệu chứng khó chịu trong giai đoạn này.\n\nVề an toàn, tài liệu cung cấp các biện pháp bảo vệ trẻ tại nhà và trong các tình huống nguy hiểm. Phụ huynh được khuyến cáo giám sát chặt chẽ trẻ, đặc biệt ở độ tuổi hiếu động, để tránh tai nạn như đuối nước, bỏng, ngã, hoặc nuốt dị vật. Các hướng dẫn cụ thể bao gồm cách xử lý khi trẻ bị hóa chất vào mắt, nuốt vật lạ, hay gặp hỏa hoạn, nhấn mạnh việc bình tĩnh và đưa trẻ đến cơ sở y tế kịp thời.	f99fb4fe-b6ee-4f06-945c-852c9524c082	2a6a85d2-e314-4acb-9e44-e7ec8a6d9e5d	2025-05-17 07:07:11.104424+00	2025-05-17 07:10:39.695973+00	/uploads/images/1747440431_cam-nang-cham-soc-tre_cover.jpg
-Một cơn gió bụi	\N	\N	2017	978-604-58-6841-2	1747460892__mot-con-gio-bui.pdf	386db928283d2a7c67992aefb545c679	3d7a13bf-7383-4764-9160-4afa676a2057	529613	AVAILABLE	6f487384-1e01-458d-8c86-d9bfcec3525b	PUBLIC	vi	1.0	0	0	f	Trong tác phẩm "Một Cơn Gió Bụi", Trần Trọng Kim kể lại hành trình cuộc đời và những biến cố lịch sử đầy sóng gió mà ông đã trải qua. Sau 31 năm cống hiến cho ngành giáo dục và giữ nhiều chức vụ quan trọng, ông nghỉ hưu năm 1942 với mong muốn an hưởng tuổi già. Tuy nhiên, nỗi đau trước tình cảnh đất nước bị thực dân Pháp đô hộ và sự suy đồi đạo đức xã hội khiến ông không thể yên lòng. Dù vậy, ông chọn sống ẩn dật, tìm an ủi trong sách vở, tránh xa các hoạt động chính trị và đảng phái, chỉ thỉnh thoảng bàn luận với bạn bè về vận mệnh dân tộc.\n\nKhi chiến tranh thế giới thứ hai lan rộng, Đông Dương rơi vào tay quân Nhật, dân Việt Nam chịu cảnh đói khổ và áp bức. Trần Trọng Kim khao khát độc lập nhưng chán nản trước sự chia rẽ và tư lợi trong phong trào yêu nước. Ông giữ thái độ thận trọng, từ chối tham gia các tổ chức chính trị thiếu tổ chức và tinh thần. Trong bối cảnh hỗn loạn năm 1943, ông bị cuốn vào vòng xoáy chính trị khi người Nhật và người Pháp nghi ngờ, theo dõi, thậm chí lôi kéo ông vào các mưu đồ. Dù gặp nhiều nguy cơ bị bắt bớ, ông vẫn giữ vững lập trường ngay thẳng. Cuối năm đó, ông buộc phải lánh nạn cùng một nhóm người Việt, dưới sự hỗ trợ của Nhật Bản, ra nước ngoài để hoạt động cách mạng. Hành trình từ Hà Nội đến Chiêu Nam Đảo (Singapore) đầy gian nan, đối mặt với chiến tranh và sự thất vọng khi thực tế không như kỳ vọng, đời sống khó khăn và những lời hứa của Nhật không thành hiện thực.\n\nTại Chiêu Nam Đảo, Trần Trọng Kim và đồng chí chịu cảnh cô lập, thiếu thốn, tâm trạng sầu muộn trước nỗi nhớ quê hương. Ông chứng kiến sự đau yếu và qua đời của ông Dương Bá Trạc, một chí sĩ yêu nước, trong hoàn cảnh bệnh tật không được chữa trị đầy đủ. Sau cái chết của ông Dương, ông tiếp tục hành trình đến Bangkok, nơi cuộc sống tạm ổn hơn, nhưng vẫn không nguôi nỗi lo về đất nước. Năm 1945, khi Nhật đảo	f99fb4fe-b6ee-4f06-945c-852c9524c082	17c90271-0a10-4748-b515-d0358474766f	2025-05-17 12:48:12.405391+00	2025-05-17 12:52:31.936796+00	/uploads/images/1747460892__mot-con-gio-bui_cover.jpg
-Một cơn gió bụi	\N	2c82fd84-68c6-4932-9284-301e0415c25c	2000	978-604-58-6841-5	1747462342__mon-ngon-ha-noi.pdf	5bd8f8dbeffc4ad0a417b1b254b11c01	3d7a13bf-7383-4764-9160-4afa676a2057	573676	AVAILABLE	6f487384-1e01-458d-8c86-d9bfcec3525b	PUBLIC	vi	1.0	0	0	f	**Tóm tắt “Miếng Ngon Hà Nội” của Vũ Bằng (500 từ)**\n\nTrong “Miếng Ngon Hà Nội”, Vũ Bằng bày tỏ nỗi nhớ da diết quê hương đất Bắc qua những kỷ niệm và hương vị thân thuộc, gửi gắm tình cảm đến những người xa quê. Tác phẩm không chỉ là ký ức cá nhân mà còn là tiếng lòng của những người mang nỗi biệt ly xứ sở, được dành tặng cho Quỳ - người nội trợ đồng hành cùng ông trong hành trình thưởng thức ẩm thực miền Bắc. Nỗi nhớ quê của tác giả hiện lên qua hình ảnh gió lạnh, lá rụng và những món ăn giản dị như trà sen, cốm Vòng, cơm gạo tám, gợi lên ký ức bữa cơm gia đình bên mẹ già, vợ dại dưới mái nhà xưa.\n\nHà Nội trong tác phẩm mang hai sắc thái: một thành phố đổi thay với phố xá rộng rãi, nhà cửa hiện đại, nhưng cũng khiến người hoài cổ tiếc nuối không khí xưa cũ dù các biểu tượng như tháp Rùa, núi Nùng vẫn còn. Dẫu vậy, ẩm thực Hà Nội vẫn giữ nét đặc trưng, là linh hồn của mảnh đất này. Những món ăn như phở, bún chả, bánh cuốn Thanh Trì không chỉ gợi nhớ mà còn làm người xa quê thèm khát, bởi chúng gắn liền với văn hóa và tinh túy dân tộc. Tác giả nhấn mạnh ăn uống không chỉ là nghệ thuật mà còn là biểu hiện của tình yêu quê hương, qua những món quà giản dị như cà cuống, bánh cốm, chè sen, mang lại hạnh phúc và cảm giác ôm trọn hương hoa đất nước.\n\nPhở, được coi là “quà căn bản” của người Việt, là tâm điểm trong tác phẩm, biểu tượng cho sự trường tồn của văn hóa cổ truyền qua bao biến cố. Tác giả mô tả phở với sức hấp dẫn huyền bí, từ mùi hương quyến rũ đến sự cầu kỳ trong chế biến và thưởng thức. Người sành ăn phở không dễ dãi, luôn tìm kiếm quán đạt chất lượng với nước dùng ngọt tự nhiên từ xương bò, bánh mỏng dẻo, thịt mềm. Những quán phở nổi tiếng như phở Sứt, phở Tàu Bay, hay câu chuyện	f99fb4fe-b6ee-4f06-945c-852c9524c082	d3d6d95b-38a0-44a4-81a1-da53541f97de	2025-05-17 13:12:22.709119+00	2025-05-17 13:15:12.942416+00	/uploads/images/1747462342__mon-ngon-ha-noi_cover.jpg
-Trạng Quỳnh	\N	\N	2003	978-604-58-6841-6	1747462837__trang-quynh.pdf	f8bc3bda4fb71e49402d8c12a8a2dc7f	3d7a13bf-7383-4764-9160-4afa676a2057	202618	AVAILABLE	6f487384-1e01-458d-8c86-d9bfcec3525b	PUBLIC	vi	1.0	0	0	f	**Tóm tắt về Trạng Quỳnh (500 từ)**\n\n"Trạng Quỳnh" là một tác phẩm dân gian khuyết danh, khắc họa hình ảnh Trạng Quỳnh – một nhân vật thông minh, dí dỏm và tinh nghịch trong văn hóa Việt Nam. Qua hàng loạt câu chuyện hài hước, Trạng Quỳnh hiện lên như biểu tượng của trí tuệ và tinh thần phản kháng, thường dùng mưu mẹo để đối phó với những kẻ quyền thế, tham lam hay nịnh bợ.\n\nNhiều câu chuyện về Trạng Quỳnh thể hiện tài ứng biến và sự hóm hỉnh của ông. Trong "Bà Chúa mắc lỡm", Quỳnh chơi khăm khiến bà Chúa kiêu ngạo xấu hổ. Hay trong "Ăn trộm mèo", Quỳnh lấy trộm mèo quý của vua, huấn luyện nó ăn rau thay vì thịt cá, rồi khéo léo chứng minh đó không phải mèo của vua. Một lần khác, khi bị vua phát hiện trốn dưới cống vì sợ xe ngựa, Quỳnh đáp trả hài hước, khiến vua bật cười và tha cho dân làng cống dê đực chửa. Những tình tiết này không chỉ gây cười mà còn phơi bày sự bất hợp lý của quyền lực.\n\nTrạng Quỳnh còn nổi bật với tài đối đáp sắc sảo. Trong câu chuyện với quan Bảng, Quỳnh giả làm học trò để tiếp cận cô Điểm, con gái quan. Khi bị thử tài bằng câu đối, Quỳnh đáp lại xuất sắc, khiến quan Bảng khâm phục và giữ lại nuôi ăn học. Một lần khác, Quỳnh đối đáp với ông Tú Cát qua câu đối, khiến ông này bẽ mặt. Ngoài ra, Quỳnh còn dùng thơ ca và mưu mẹo để dạy bài học cho những kẻ kiêu ngạo, như cô gái chủ ruộng đanh đá hay lão trọc phú dốt nát thích khoe chữ.\n\nKhông chỉ đối phó với quan lại trong nước, Quỳnh còn thể hiện tài trí khi đương đầu với sứ Tàu. Trong cuộc thi vẽ, Quỳnh ung dung dùng mười ngón tay vẽ mười con giun đất, khiến sứ Tàu thua cuộc. Trên sông,	f99fb4fe-b6ee-4f06-945c-852c9524c082	baca8ffa-fd59-43aa-9075-0719b66636b4	2025-05-17 13:20:37.350329+00	2025-05-17 13:21:50.532979+00	/uploads/images/1747462837__trang-quynh_cover.jpg
+COPY public.documents (title, description, publisher_id, publication_year, isbn, file_name, file_hash, file_type, file_size, status, category_id, access_level, language, version, download_count, view_count, is_featured, ai_summary, added_by, id, created_at, updated_at, image_url, slug, score, expires_at) FROM stdin;
+Truyện cổ tích Hà Nhi	\N	\N	1995	978-604-58-6841-1	1747440161_truyen-co-tich-ha-nhi.pdf	ace95f767aac5e14a6506c641bb578c2	3d7a13bf-7383-4764-9160-4afa676a2057	26783715	REJECTED	6f487384-1e01-458d-8c86-d9bfcec3525b	PUBLIC	vi	1.0	0	75	f	\N	f99fb4fe-b6ee-4f06-945c-852c9524c082	ec55ebcd-70b0-4d6e-9cad-62b6c9de8da6	2025-05-17 07:02:41.883584+00	2025-05-18 01:20:26.455445+00	/uploads/images/1747440161_truyen-co-tich-ha-nhi_cover.jpg	truyn c tch h nhi	0	\N
+Test Document	Test Document	\N	2020	1234567890	1747188335_test document.txt	e5ad4e210e3f4ee04e035a42263c4a5c	40fdbd91-fe7c-430a-a1d7-6e2b7ca8d772	4039	PENDING	6f487384-1e01-458d-8c86-d9bfcec3525b	PUBLIC	vi	1.0	0	3	f	\N	f99fb4fe-b6ee-4f06-945c-852c9524c082	04397913-1f61-4159-bda4-75e6a4ac8e45	2025-05-14 09:05:35.209438+00	2025-05-18 02:41:35.745389+00	\N	test-document	0	\N
+Tuổi trẻ đáng giá bao nhiêu	Sách về Tuổi trẻ đáng giá bao nhiêu	805844a9-74cc-4498-933f-9de4d09cad0f	2020	9786045229	1747420308_Tuổi trẻ đáng giá bao nhiêu.pdf	62c9aea51febd265d015ae78a4cab053	3d7a13bf-7383-4764-9160-4afa676a2057	597614	AVAILABLE	7bc26412-d096-4bdc-a8b7-8c4407a5e845	PUBLIC	vi	1.0	0	5	f	Tuổi trẻ là giai đoạn quý giá để phát triển bản thân và định hình tương lai, như được nhấn mạnh trong tác phẩm “Tuổi trẻ đáng giá bao nhiêu?” của Rosie Nguyễn. Tác giả bày tỏ tiếc nuối khi nhiều người trẻ lãng phí thời gian vào những thú vui vô bổ mà không nhận ra giá trị của thời gian – tài sản không thể thay thế. Nhìn lại ở ngưỡng 30, tác giả mong muốn được quay lại tuổi mười tám, đôi mươi để sống ý nghĩa hơn, đầu tư vào sức khỏe thông qua các hoạt động như chạy bộ, bơi lội hay yoga, bởi một cơ thể khỏe mạnh không chỉ nâng cao thể chất mà còn cải thiện tinh thần. Hơn nữa, việc đọc sách được xem là cách hiệu quả để tích lũy tri thức, mở rộng tầm nhìn và tạo động lực hành động, đặc biệt với các nguồn tài liệu miễn phí như ebook hay các trang web như Sachvui.Com. Chỉ cần duy trì thói quen đọc một cuốn sách mỗi tuần, kiến thức sẽ tăng đáng kể sau một năm.\n\nBên cạnh đó, học trực tuyến qua các nền tảng MOOC như Coursera, edX hay Khan Academy mang lại cơ hội tiếp cận giáo trình chất lượng từ các trường đại học hàng đầu, với nhiều chủ đề đa dạng và hoàn toàn miễn phí. Đây là xu hướng giáo dục tương lai, cho phép người học tự chọn thời gian, không cần di chuyển và bổ sung kỹ năng thực tế. Ngoài ra, tuổi trẻ còn là thời điểm lý tưởng để trải nghiệm du lịch bụi, kết nối với cộng đồng toàn cầu qua các nền tảng như Couchsurfing, giúp tiết kiệm chi phí và mang lại những kỷ niệm khó quên. Những chuyến đi không chỉ mở rộng tầm nhìn mà còn giúp người trẻ hiểu sâu hơn về con người và cuộc sống, như câu chuyện về một sinh viên khám phá Campuchia và Thái Lan chỉ với 2 triệu đồng nhờ sự can đảm bước ra khỏi vùng an toàn.\n\nHơn nữa, tham gia các hoạt động tình nguyện và công việc làm thêm trong độ tuổi hai mươi cũng đóng vai trò quan trọng trong việc rèn luyện kỹ năng và xây dựng mối quan hệ. Các tổ chức như AIESEC hay các câu lạc bộ du lịch như Hanoi Kids Tours cung cấp cơ hội phát triển kỹ năng giao tiếp, khám phá sở thích cá nhân và thể hiện lòng biết ơn. Đồng	f99fb4fe-b6ee-4f06-945c-852c9524c082	ae1a745c-d568-4912-9cb6-2f6b3ff677e6	2025-05-17 01:31:48.440549+00	2025-05-18 00:19:12.966775+00	\N	tui tr ng gi bao nhiu	0	\N
+Test Document 02	Test Document 02	\N	2001	0919838199	1747268351_document02.txt	d75487fb972293552b8230f3d93dafc7	40fdbd91-fe7c-430a-a1d7-6e2b7ca8d772	2323	PENDING	6f487384-1e01-458d-8c86-d9bfcec3525b	PUBLIC	vi	1.0	0	0	f	\N	f99fb4fe-b6ee-4f06-945c-852c9524c082	437117d0-4524-471c-a3c6-7e04dd7e6352	2025-05-15 07:19:11.285443+00	\N	\N	test document 02	0	\N
+Test Document 01	Test Document 01	\N	2000	0919838188	1747268663_document01 - Copy.txt	2d3c1cb48fdc2a663ad7a647c60b1033	40fdbd91-fe7c-430a-a1d7-6e2b7ca8d772	3478	PENDING	6f487384-1e01-458d-8c86-d9bfcec3525b	PUBLIC	vi	1.0	0	0	f	\N	f99fb4fe-b6ee-4f06-945c-852c9524c082	9838e346-b46a-47d7-a087-b915e803c91c	2025-05-15 07:24:23.892511+00	\N	\N	test document 01	0	\N
+Test Document 03	Test Document 03	\N	2003	0919838103	1747269544_Document 03.txt	32613b3ddc4eb2e7a64534d6ffdb2766	40fdbd91-fe7c-430a-a1d7-6e2b7ca8d772	2819	AVAILABLE	6f487384-1e01-458d-8c86-d9bfcec3525b	PUBLIC	vi	1.0	0	6	f	\N	f99fb4fe-b6ee-4f06-945c-852c9524c082	346fab5f-7681-441c-a11e-72ccada48508	2025-05-15 07:39:04.079869+00	2025-05-17 16:10:12.466376+00	\N	test document 03	0	\N
+Cẩm nang chăm sóc trẻ	\N	\N	2020	978-604-1-26257-9	1747440431_cam-nang-cham-soc-tre.pdf	261afec40b8f499c5174d811434777fe	3d7a13bf-7383-4764-9160-4afa676a2057	402434	AVAILABLE	6f487384-1e01-458d-8c86-d9bfcec3525b	PUBLIC	vi	1.0	0	6	f	"Cẩm nang Chăm sóc Trẻ em" cung cấp những hướng dẫn toàn diện và thiết thực cho phụ huynh trong việc nuôi dưỡng, bảo vệ sức khỏe và đảm bảo an toàn cho trẻ ở các độ tuổi khác nhau. Trước hết, về dinh dưỡng, tài liệu giới thiệu các thực đơn cụ thể như 16 món ăn cho trẻ 12-24 tháng, cùng hàng loạt món cháo, canh và món mặn giàu dinh dưỡng (từ 228 đến 329 calo mỗi khẩu phần) với công thức chế biến chi tiết, đảm bảo cung cấp năng lượng và dưỡng chất cần thiết cho sự phát triển của trẻ. Các nguyên liệu chủ yếu bao gồm gạo, protein từ thịt, cá, trứng, và rau củ, được chế biến đơn giản, dễ tiêu hóa, phù hợp với trẻ nhỏ.\n\nBên cạnh dinh dưỡng, cẩm nang nhấn mạnh tầm quan trọng của việc chăm sóc sức khỏe toàn diện. Về giấc ngủ, tài liệu đưa ra các giải pháp giúp trẻ hình thành thói quen ngủ đúng giờ qua chương trình 7 ngày, khuyến khích cha mẹ tạo môi trường yên tĩnh, duy trì lịch trình đều đặn, và hạn chế các thói quen phụ thuộc như bế ru hay cho bú khi ngủ. Giấc ngủ được nhấn mạnh là yếu tố then chốt cho sự phát triển não bộ, đặc biệt trong 3 năm đầu đời khi 80% sự phát triển diễn ra. Ngoài ra, chăm sóc răng miệng cũng được chú trọng, với hướng dẫn phòng ngừa sâu răng bằng vệ sinh đúng cách, sử dụng kem đánh răng chứa fluoride phù hợp độ tuổi, và tránh các thói quen xấu như ăn kẹo thường xuyên. Các vấn đề như hôi miệng và mọc răng cũng được đề cập, kèm theo cách xử lý triệu chứng khó chịu trong giai đoạn này.\n\nVề an toàn, tài liệu cung cấp các biện pháp bảo vệ trẻ tại nhà và trong các tình huống nguy hiểm. Phụ huynh được khuyến cáo giám sát chặt chẽ trẻ, đặc biệt ở độ tuổi hiếu động, để tránh tai nạn như đuối nước, bỏng, ngã, hoặc nuốt dị vật. Các hướng dẫn cụ thể bao gồm cách xử lý khi trẻ bị hóa chất vào mắt, nuốt vật lạ, hay gặp hỏa hoạn, nhấn mạnh việc bình tĩnh và đưa trẻ đến cơ sở y tế kịp thời.	f99fb4fe-b6ee-4f06-945c-852c9524c082	2a6a85d2-e314-4acb-9e44-e7ec8a6d9e5d	2025-05-17 07:07:11.104424+00	2025-05-17 22:34:20.197746+00	/uploads/images/1747440431_cam-nang-cham-soc-tre_cover.jpg	cm nang chm sc tr	0	\N
+Một cơn gió bụi	\N	\N	2017	978-604-58-6841-2	1747460892__mot-con-gio-bui.pdf	386db928283d2a7c67992aefb545c679	3d7a13bf-7383-4764-9160-4afa676a2057	529613	AVAILABLE	6f487384-1e01-458d-8c86-d9bfcec3525b	PUBLIC	vi	1.0	0	22	f	Trong tác phẩm "Một Cơn Gió Bụi", Trần Trọng Kim kể lại hành trình cuộc đời và những biến cố lịch sử đầy sóng gió mà ông đã trải qua. Sau 31 năm cống hiến cho ngành giáo dục và giữ nhiều chức vụ quan trọng, ông nghỉ hưu năm 1942 với mong muốn an hưởng tuổi già. Tuy nhiên, nỗi đau trước tình cảnh đất nước bị thực dân Pháp đô hộ và sự suy đồi đạo đức xã hội khiến ông không thể yên lòng. Dù vậy, ông chọn sống ẩn dật, tìm an ủi trong sách vở, tránh xa các hoạt động chính trị và đảng phái, chỉ thỉnh thoảng bàn luận với bạn bè về vận mệnh dân tộc.\n\nKhi chiến tranh thế giới thứ hai lan rộng, Đông Dương rơi vào tay quân Nhật, dân Việt Nam chịu cảnh đói khổ và áp bức. Trần Trọng Kim khao khát độc lập nhưng chán nản trước sự chia rẽ và tư lợi trong phong trào yêu nước. Ông giữ thái độ thận trọng, từ chối tham gia các tổ chức chính trị thiếu tổ chức và tinh thần. Trong bối cảnh hỗn loạn năm 1943, ông bị cuốn vào vòng xoáy chính trị khi người Nhật và người Pháp nghi ngờ, theo dõi, thậm chí lôi kéo ông vào các mưu đồ. Dù gặp nhiều nguy cơ bị bắt bớ, ông vẫn giữ vững lập trường ngay thẳng. Cuối năm đó, ông buộc phải lánh nạn cùng một nhóm người Việt, dưới sự hỗ trợ của Nhật Bản, ra nước ngoài để hoạt động cách mạng. Hành trình từ Hà Nội đến Chiêu Nam Đảo (Singapore) đầy gian nan, đối mặt với chiến tranh và sự thất vọng khi thực tế không như kỳ vọng, đời sống khó khăn và những lời hứa của Nhật không thành hiện thực.\n\nTại Chiêu Nam Đảo, Trần Trọng Kim và đồng chí chịu cảnh cô lập, thiếu thốn, tâm trạng sầu muộn trước nỗi nhớ quê hương. Ông chứng kiến sự đau yếu và qua đời của ông Dương Bá Trạc, một chí sĩ yêu nước, trong hoàn cảnh bệnh tật không được chữa trị đầy đủ. Sau cái chết của ông Dương, ông tiếp tục hành trình đến Bangkok, nơi cuộc sống tạm ổn hơn, nhưng vẫn không nguôi nỗi lo về đất nước. Năm 1945, khi Nhật đảo	f99fb4fe-b6ee-4f06-945c-852c9524c082	17c90271-0a10-4748-b515-d0358474766f	2025-05-17 12:48:12.405391+00	2025-05-18 01:01:14.586375+00	/uploads/images/1747460892__mot-con-gio-bui_cover.jpg	mt cn gi bi	0	\N
+Một cơn gió bụi	"Một cơn gió bụi" là tác phẩm hồi ký nổi tiếng của Trần Trọng Kim, ghi lại những sự kiện lịch sử và trải nghiệm cá nhân của ông trong giai đoạn đầy biến động của đất nước, đặc biệt là thời kỳ cuối triều Nguyễn, thời Pháp thuộc và Nhật đảo chính Pháp (1945). Tác phẩm mang đậm chất suy tư, thể hiện nỗi trăn trở của một trí thức yêu nước trước vận mệnh dân tộc. Với giọng văn chân thành, giản dị nhưng sâu sắc, Trần Trọng Kim không chỉ kể lại cuộc đời mình mà còn phản ánh tâm thế của một lớp người trong buổi giao thời đầy "gió bụi".	2c82fd84-68c6-4932-9284-301e0415c25c	2001	978-604-58-6841-5	1747462342__mon-ngon-ha-noi.pdf	5bd8f8dbeffc4ad0a417b1b254b11c01	3d7a13bf-7383-4764-9160-4afa676a2057	573676	AVAILABLE	6f487384-1e01-458d-8c86-d9bfcec3525b	PUBLIC	vi	1.0	0	105	f	**Tóm tắt “Miếng Ngon Hà Nội” của Vũ Bằng (500 từ)**\n\nTrong “Miếng Ngon Hà Nội”, Vũ Bằng bày tỏ nỗi nhớ da diết quê hương đất Bắc qua những kỷ niệm và hương vị thân thuộc, gửi gắm tình cảm đến những người xa quê. Tác phẩm không chỉ là ký ức cá nhân mà còn là tiếng lòng của những người mang nỗi biệt ly xứ sở, được dành tặng cho Quỳ - người nội trợ đồng hành cùng ông trong hành trình thưởng thức ẩm thực miền Bắc. Nỗi nhớ quê của tác giả hiện lên qua hình ảnh gió lạnh, lá rụng và những món ăn giản dị như trà sen, cốm Vòng, cơm gạo tám, gợi lên ký ức bữa cơm gia đình bên mẹ già, vợ dại dưới mái nhà xưa.\n\nHà Nội trong tác phẩm mang hai sắc thái: một thành phố đổi thay với phố xá rộng rãi, nhà cửa hiện đại, nhưng cũng khiến người hoài cổ tiếc nuối không khí xưa cũ dù các biểu tượng như tháp Rùa, núi Nùng vẫn còn. Dẫu vậy, ẩm thực Hà Nội vẫn giữ nét đặc trưng, là linh hồn của mảnh đất này. Những món ăn như phở, bún chả, bánh cuốn Thanh Trì không chỉ gợi nhớ mà còn làm người xa quê thèm khát, bởi chúng gắn liền với văn hóa và tinh túy dân tộc. Tác giả nhấn mạnh ăn uống không chỉ là nghệ thuật mà còn là biểu hiện của tình yêu quê hương, qua những món quà giản dị như cà cuống, bánh cốm, chè sen, mang lại hạnh phúc và cảm giác ôm trọn hương hoa đất nước.\n\nPhở, được coi là “quà căn bản” của người Việt, là tâm điểm trong tác phẩm, biểu tượng cho sự trường tồn của văn hóa cổ truyền qua bao biến cố. Tác giả mô tả phở với sức hấp dẫn huyền bí, từ mùi hương quyến rũ đến sự cầu kỳ trong chế biến và thưởng thức. Người sành ăn phở không dễ dãi, luôn tìm kiếm quán đạt chất lượng với nước dùng ngọt tự nhiên từ xương bò, bánh mỏng dẻo, thịt mềm. Những quán phở nổi tiếng như phở Sứt, phở Tàu Bay, hay câu chuyện	f99fb4fe-b6ee-4f06-945c-852c9524c082	d3d6d95b-38a0-44a4-81a1-da53541f97de	2025-05-17 13:12:22.709119+00	2025-05-18 00:23:45.951046+00	/uploads/images/1747462342__mon-ngon-ha-noi_cover.jpg	mot-con-gio-bui	0	\N
+Trạng Quỳnh	\N	\N	2003	978-604-58-6841-6	1747462837__trang-quynh.pdf	f8bc3bda4fb71e49402d8c12a8a2dc7f	3d7a13bf-7383-4764-9160-4afa676a2057	202618	AVAILABLE	6f487384-1e01-458d-8c86-d9bfcec3525b	PUBLIC	vi	1.0	0	15	f	**Tóm tắt về Trạng Quỳnh (500 từ)**\n\n"Trạng Quỳnh" là một tác phẩm dân gian khuyết danh, khắc họa hình ảnh Trạng Quỳnh – một nhân vật thông minh, dí dỏm và tinh nghịch trong văn hóa Việt Nam. Qua hàng loạt câu chuyện hài hước, Trạng Quỳnh hiện lên như biểu tượng của trí tuệ và tinh thần phản kháng, thường dùng mưu mẹo để đối phó với những kẻ quyền thế, tham lam hay nịnh bợ.\n\nNhiều câu chuyện về Trạng Quỳnh thể hiện tài ứng biến và sự hóm hỉnh của ông. Trong "Bà Chúa mắc lỡm", Quỳnh chơi khăm khiến bà Chúa kiêu ngạo xấu hổ. Hay trong "Ăn trộm mèo", Quỳnh lấy trộm mèo quý của vua, huấn luyện nó ăn rau thay vì thịt cá, rồi khéo léo chứng minh đó không phải mèo của vua. Một lần khác, khi bị vua phát hiện trốn dưới cống vì sợ xe ngựa, Quỳnh đáp trả hài hước, khiến vua bật cười và tha cho dân làng cống dê đực chửa. Những tình tiết này không chỉ gây cười mà còn phơi bày sự bất hợp lý của quyền lực.\n\nTrạng Quỳnh còn nổi bật với tài đối đáp sắc sảo. Trong câu chuyện với quan Bảng, Quỳnh giả làm học trò để tiếp cận cô Điểm, con gái quan. Khi bị thử tài bằng câu đối, Quỳnh đáp lại xuất sắc, khiến quan Bảng khâm phục và giữ lại nuôi ăn học. Một lần khác, Quỳnh đối đáp với ông Tú Cát qua câu đối, khiến ông này bẽ mặt. Ngoài ra, Quỳnh còn dùng thơ ca và mưu mẹo để dạy bài học cho những kẻ kiêu ngạo, như cô gái chủ ruộng đanh đá hay lão trọc phú dốt nát thích khoe chữ.\n\nKhông chỉ đối phó với quan lại trong nước, Quỳnh còn thể hiện tài trí khi đương đầu với sứ Tàu. Trong cuộc thi vẽ, Quỳnh ung dung dùng mười ngón tay vẽ mười con giun đất, khiến sứ Tàu thua cuộc. Trên sông,	f99fb4fe-b6ee-4f06-945c-852c9524c082	baca8ffa-fd59-43aa-9075-0719b66636b4	2025-05-17 13:20:37.350329+00	2025-05-18 00:31:20.725645+00	/uploads/images/1747462837__trang-quynh_cover.jpg	trng qunh	0	\N
 \.
 
 
@@ -1488,6 +1543,11 @@ Trạng Quỳnh	\N	\N	2003	978-604-58-6841-6	1747462837__trang-quynh.pdf	f8bc3bd
 --
 
 COPY public.favorites (user_id, document_id, created_at, id, updated_at) FROM stdin;
+c87e42ab-cf7d-462f-9d46-e3509295ccf9	2a6a85d2-e314-4acb-9e44-e7ec8a6d9e5d	2025-05-17 18:29:25.200894+00	70b46121-bfff-4d84-969e-a9bdf96d31b5	\N
+c87e42ab-cf7d-462f-9d46-e3509295ccf9	d3d6d95b-38a0-44a4-81a1-da53541f97de	2025-05-17 18:29:43.050588+00	ea5a0761-22a3-4342-b9b0-e9c2c800ee5e	\N
+f99fb4fe-b6ee-4f06-945c-852c9524c082	d3d6d95b-38a0-44a4-81a1-da53541f97de	2025-05-17 20:01:20.235562+00	ab5c43b9-875f-4c7c-bf0b-b6a2d5f18fc7	\N
+c87e42ab-cf7d-462f-9d46-e3509295ccf9	ec55ebcd-70b0-4d6e-9cad-62b6c9de8da6	2025-05-17 22:58:18.592721+00	3775f2df-db87-4e17-8128-2326e1974dfe	\N
+c87e42ab-cf7d-462f-9d46-e3509295ccf9	17c90271-0a10-4748-b515-d0358474766f	2025-05-18 00:53:00.011749+00	858c2c83-8ee8-4b3f-9441-5c09a2f7b286	\N
 \.
 
 
@@ -1529,6 +1589,14 @@ COPY public.notifications (user_id, type, content, related_id, related_type, is_
 
 
 --
+-- Data for Name: payment; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.payment (id, transaction_code, is_add, user_id, amount, balance, at_time) FROM stdin;
+\.
+
+
+--
 -- Data for Name: publishers; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -1560,6 +1628,7 @@ COPY public.ratings (document_id, user_id, rating, comment, id, created_at, upda
 --
 
 COPY public.reading_progress (user_id, document_id, chapter_id, progress_type, progress_value, status, last_read_at, total_read_time, session_read_time, last_position, device_id, session_id, synced_at, ai_recommendation_trigger, section_id, conflict_resolution, last_sync_device, sync_version, conflict_status, merged_progress, id, created_at, updated_at) FROM stdin;
+6d15f82a-a17e-4ecc-ba88-7c8c67a834ec	ec55ebcd-70b0-4d6e-9cad-62b6c9de8da6	\N	PAGE	1	READING	2025-05-17 21:59:30.553777+00	0	0	{"page": 1, "scale": 1, "rotation": 0, "timestamp": "2025-05-17T21:59:30.125Z"}	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0	\N	\N	f	\N	LATEST	\N	1	\N	null	3faf4daf-6c65-4cf3-b4df-c4116021875a	2025-05-17 21:58:38.448966+00	2025-05-17 21:59:30.540838+00
 \.
 
 
@@ -1613,9 +1682,11 @@ Kỹ năng sống	\N	ACTIVE	00906c81-0d7b-4203-a5cb-3b631bc635ac	2025-05-17 13:0
 --
 
 COPY public.user_sessions (user_id, token, ip_address, user_agent, created_at, expires_at, id, updated_at) FROM stdin;
+6d15f82a-a17e-4ecc-ba88-7c8c67a834ec	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2ZDE1ZjgyYS1hMTdlLTRlY2MtYmE4OC03YzhjNjdhODM0ZWMiLCJleHAiOjE3NDc1MjMwNTR9._F0Jv1tWatkYKBZtYXyq5FG3dYFJkGJIWAh7qErnOMg	\N	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0	2025-05-17 21:49:29.679691+00	2025-05-18 22:34:14.085482+00	8088342a-dbf6-48c7-a030-1a89e8d1e5ea	2025-05-17 22:34:14.088742+00
 194e3ea0-ea28-47a7-a63a-1c2e4067bd73	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxOTRlM2VhMC1lYTI4LTQ3YTctYTYzYS0xYzJlNDA2N2JkNzMiLCJleHAiOjE3NDc0OTM2MjZ9.3OPXqQc_Z_e0HGc4zgifFoBz06hETwFa89exMNOuyag	\N	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0	2025-05-17 14:23:46.3198+00	2025-05-18 14:23:46.322212+00	c499ff78-64b2-42a2-bd53-1d0e5ae7808c	\N
-c87e42ab-cf7d-462f-9d46-e3509295ccf9	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjODdlNDJhYi1jZjdkLTQ2MmYtOWQ0Ni1lMzUwOTI5NWNjZjkiLCJleHAiOjE3NDc0OTQ5MzV9.T7yGOIBgp5m35o_b2EEij4NeiSLvhU0BJXVnp9RkWW4	\N	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0	2025-05-17 14:33:04.385729+00	2025-05-18 14:45:35.972509+00	b661553a-c831-4262-a51c-1b3dcfadd7cb	2025-05-17 14:45:35.969687+00
-f99fb4fe-b6ee-4f06-945c-852c9524c082	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJmOTlmYjRmZS1iNmVlLTRmMDYtOTQ1Yy04NTJjOTUyNGMwODIiLCJleHAiOjE3NDc0OTUzMzN9.rGbLFwp5_VHxvtFxPatdKSrWTe2CrIOiAf_KbWyH3SY	\N	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0	2025-05-17 02:33:36.332113+00	2025-05-18 14:52:13.593392+00	763273a8-debd-446c-9eef-d2c76e50d7c5	2025-05-17 14:52:13.59211+00
+5d8acda3-86ca-4f8a-a243-fcbfb3a47f7b	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1ZDhhY2RhMy04NmNhLTRmOGEtYTI0My1mY2JmYjNhNDdmN2IiLCJleHAiOjE3NDc0OTc1ODJ9.d8Z3tKlQvfrOKqS19hqYY47GWh-5r2nXoqSgIOr8VQI	\N	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0	2025-05-17 15:29:42.55373+00	2025-05-18 15:29:42.557075+00	65ad9a9c-e53a-46f0-ad88-b6d2607b2a4b	\N
+f99fb4fe-b6ee-4f06-945c-852c9524c082	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJmOTlmYjRmZS1iNmVlLTRmMDYtOTQ1Yy04NTJjOTUyNGMwODIiLCJleHAiOjE3NDc1Mzk0MjR9.nCGzz3KuFJF2oIzemfMRAKG0Lpl0fnX1K-fl5Jkb8oM	\N	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0	2025-05-17 02:33:36.332113+00	2025-05-19 03:07:04.089483+00	763273a8-debd-446c-9eef-d2c76e50d7c5	2025-05-18 03:07:04.086878+00
+c87e42ab-cf7d-462f-9d46-e3509295ccf9	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjODdlNDJhYi1jZjdkLTQ2MmYtOWQ0Ni1lMzUwOTI5NWNjZjkiLCJleHAiOjE3NDc1NDExNjl9.OTKmg5x92D__cfUDCuffruEpaP_dyq2aUgtRoAAQzPs	\N	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0	2025-05-17 14:33:04.385729+00	2025-05-19 03:36:09.552212+00	b661553a-c831-4262-a51c-1b3dcfadd7cb	2025-05-18 03:36:09.549232+00
 \.
 
 
@@ -1623,21 +1694,23 @@ f99fb4fe-b6ee-4f06-945c-852c9524c082	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdW
 -- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.users (email, username, hashed_password, full_name, role, is_active, is_verified, verification_code, verification_code_expires, failed_login_attempts, lockout_until, phone_number, address, avatar_url, last_login, id, created_at, updated_at) FROM stdin;
-testuser04@example.com	testuser04	$2b$12$Vp60Lj7YgOYu5pFdj3.zGO2fd56sswzGxvVfVUkyWD/KpN.tjETmO	testuser04	MEMBER	t	f	\N	\N	0	\N	\N	\N	\N	\N	6d15f82a-a17e-4ecc-ba88-7c8c67a834ec	2025-05-13 06:08:21.541896+00	2025-05-13 06:08:21.289882+00
-testuser00@example.com	testuser00	$2b$12$bUIjFgurAPcS4JjXj5zXDuT11qgU/C5TT3G4NMcKXfS0kQnXQzkTG	testuser00	MEMBER	f	f	\N	\N	0	\N	\N	\N	\N	2025-05-13 08:01:56.025915+00	07146562-4154-4635-838c-0d06d7df0a0f	2025-05-13 05:56:52.252723+00	2025-05-13 07:50:36.610883+00
-clonemail28012024@gmail.com	clonemail28012024	$2b$12$2ebJhDLgvLDqHFI0fPiVK.U1vkfA/tXgxonadE9LTzWT716/lH.Ha	Clone	MEMBER	t	t	\N	\N	0	\N	0987654321	123 Test Street, Test City	https://example.com/avatars/test.jpg	2025-05-14 02:15:52.988289+00	765d8411-e686-42f2-991b-5a782dd87652	2025-05-13 06:17:52.940354+00	2025-05-13 07:48:04.103697+00
-testuser01@example.com	testuser01	$2b$12$ZgPI.zKrMWloqBmUtee4Pe22kgyTTfbTnQztcFpUDgOkaWznPvwLC	testuser01	MEMBER	t	f	\N	\N	0	\N	\N	\N	\N	2025-05-13 06:12:29.783907+00	c261acda-3fb6-4e2d-95d8-f681d7073807	2025-05-13 05:58:24.801012+00	2025-05-13 06:12:29.531479+00
-testuser02@example.com	testuser02	$2b$12$V1ymSsHQsBo5ncaq6PtcQupfTr7MkJuN7VHB0rHZ2p2FV3/L6CKrC	testuser02	MEMBER	t	f	\N	\N	0	\N	\N	\N	\N	2025-05-13 08:02:47.269419+00	e0771ad4-b867-403d-81f5-8201ac90d347	2025-05-13 06:04:08.475419+00	2025-05-13 06:04:08.246427+00
-c.lonemail28012024@gmail.com	test	$2b$12$tYXb4W1fCOFNqKWsaA5qLu6iE1BygZ09eeUMSQWW.F0UG40FHf9ci	test	MEMBER	t	t	\N	\N	0	\N	\N	\N	\N	2025-05-14 02:18:41.532956+00	e504d986-9186-47ed-8e55-096bd7aaf331	2025-05-14 02:11:21.954027+00	2025-05-14 02:19:10.702888+00
-testuser05@example.com	testuser05	$2b$12$MzKw7TsqnVovFv9qq1ABx.lMdUz2jN0rz1vZmdcCAj0Z3sNYgn3WS	testuser05	MEMBER	t	f	\N	\N	0	\N	\N	\N	\N	2025-05-13 08:11:01.002207+00	dce7245a-26bc-43ca-8d1c-5460e01dee63	2025-05-13 06:15:10.052499+00	2025-05-13 08:06:22.123502+00
-lanyurwar@gmail.com	lanyurwar	$2b$12$xoEqbcRhQ0LZdjDW4.it2.gJroykhx5ycxwYvFsBTZ9bKozTULcRG	lanyurwar	MEMBER	t	f	\N	\N	0	\N	\N	\N	\N	2025-05-13 08:16:40.977609+00	4a7c099d-9c14-4b62-9cbf-f5fa50fa2640	2025-05-13 08:16:07.16748+00	\N
-testuser06@example.com	testuser	$2b$12$ebiciaHvkBgp.ZM5VMaqnuo9Z.WZ4e72cnD6uGPeRsK64KhwElMd2	testuser	MEMBER	t	f	\N	\N	0	\N	\N	\N	\N	2025-05-13 08:18:19.297036+00	f470b4ea-6d7a-4e4b-98c1-51762d005004	2025-05-13 08:11:56.844403+00	\N
-testuser07@example.com	testuser07	$2b$12$HOvRxPUOfPex4.Ng6VHDyu8W9Wt9TveRMkQWmxo1iLRvs.oy9Sjo6	testuser	MEMBER	t	t	\N	\N	0	\N	\N	\N	\N	2025-05-13 08:35:52.566948+00	56a82a35-a0bf-487e-a706-04e40e8e58fd	2025-05-13 08:21:08.08777+00	2025-05-13 08:37:49.883238+00
-testuser08@example.com	testuser08	$2b$12$ahszwj41lmeVJ4P.MbUjAOhI.gWH6tcmJoArsbvKplqqmZsIsrj/6	testuser08	MEMBER	t	t	\N	\N	0	\N	\N	\N	\N	2025-05-14 07:38:38.669423+00	53adc6a6-b1d2-4ff3-86c1-3f8de0e70b1b	2025-05-14 07:37:25.89131+00	2025-05-14 07:40:11.197535+00
-testuser03@example.com	testuser03	$2b$12$iHQAq/7dviW2ZMw0yttzXeJ5Sry6u9ChP0fIFIuzmSRSgqfV/kxCm	testuser03	MEMBER	t	f	\N	\N	0	\N	\N	\N	\N	2025-05-17 14:23:46.272383+00	194e3ea0-ea28-47a7-a63a-1c2e4067bd73	2025-05-13 06:06:30.963524+00	2025-05-13 06:06:30.70439+00
-cnv1902@gmail.com	cnv1902	$2b$12$1NBGNwfQa9MKlVl3OTzu9Ok3FraMrArv/nskDcyjiA007YpAJqGXa	Nguyen Van Chuong	MEMBER	t	t	\N	\N	0	\N	\N	\N	\N	2025-05-17 14:45:35.926206+00	c87e42ab-cf7d-462f-9d46-e3509295ccf9	2025-05-14 07:59:06.956553+00	2025-05-15 14:41:17.480499+00
-admin@example.com	admin	$2b$12$bLmTbf9zzjmYpXTXTgLtcu0m9K3pmPqUOqv72JAqypnzU682HZQvC	System Admin	ADMIN	t	t	\N	\N	0	\N	\N	\N	\N	2025-05-17 14:52:13.553279+00	f99fb4fe-b6ee-4f06-945c-852c9524c082	2025-05-13 05:48:51.840068+00	\N
+COPY public.users (email, username, hashed_password, full_name, role, is_active, is_verified, verification_code, verification_code_expires, failed_login_attempts, lockout_until, phone_number, address, avatar_url, last_login, id, created_at, updated_at, score) FROM stdin;
+admin@example.com	admin	$2b$12$bLmTbf9zzjmYpXTXTgLtcu0m9K3pmPqUOqv72JAqypnzU682HZQvC	testuser0000	ADMIN	t	t	\N	\N	0	\N	099181819	kakakakjsdjjaaa	\N	2025-05-18 03:07:04.044708+00	f99fb4fe-b6ee-4f06-945c-852c9524c082	2025-05-13 05:48:51.840068+00	2025-05-18 02:27:44.440706+00	0
+cnv1902@gmail.com	cnv1902	$2b$12$U9PxYBuV4OuzjudQWg.Eaerx6zyGQZfeQgUGZhsN8/nirYiFnEc4y	Nguyen Van Chuong	MEMBER	t	t	\N	\N	0	\N	\N	\N	\N	2025-05-18 03:36:09.52862+00	c87e42ab-cf7d-462f-9d46-e3509295ccf9	2025-05-14 07:59:06.956553+00	2025-05-17 15:33:31.114974+00	0
+clonemail28012024@gmail.com	clonemail28012024	$2b$12$2ebJhDLgvLDqHFI0fPiVK.U1vkfA/tXgxonadE9LTzWT716/lH.Ha	Clone	MEMBER	t	t	\N	\N	0	\N	0987654321	123 Test Street, Test City	https://example.com/avatars/test.jpg	2025-05-14 02:15:52.988289+00	765d8411-e686-42f2-991b-5a782dd87652	2025-05-13 06:17:52.940354+00	2025-05-13 07:48:04.103697+00	0
+c.lonemail28012024@gmail.com	test	$2b$12$tYXb4W1fCOFNqKWsaA5qLu6iE1BygZ09eeUMSQWW.F0UG40FHf9ci	test	MEMBER	t	t	\N	\N	0	\N	\N	\N	\N	2025-05-14 02:18:41.532956+00	e504d986-9186-47ed-8e55-096bd7aaf331	2025-05-14 02:11:21.954027+00	2025-05-14 02:19:10.702888+00	0
+testuser07@example.com	testuser07	$2b$12$HOvRxPUOfPex4.Ng6VHDyu8W9Wt9TveRMkQWmxo1iLRvs.oy9Sjo6	testuser	MEMBER	t	t	\N	\N	0	\N	\N	\N	\N	2025-05-13 08:35:52.566948+00	56a82a35-a0bf-487e-a706-04e40e8e58fd	2025-05-13 08:21:08.08777+00	2025-05-13 08:37:49.883238+00	0
+testuser00@example.com	testuser00	$2b$12$bUIjFgurAPcS4JjXj5zXDuT11qgU/C5TT3G4NMcKXfS0kQnXQzkTG	testuser00	MEMBER	f	f	\N	\N	0	\N	\N	\N	\N	2025-05-13 08:01:56.025915+00	07146562-4154-4635-838c-0d06d7df0a0f	2025-05-13 05:56:52.252723+00	2025-05-18 02:30:58.564516+00	0
+testuser01@example.com	testuser01	$2b$12$ZgPI.zKrMWloqBmUtee4Pe22kgyTTfbTnQztcFpUDgOkaWznPvwLC	testuser01	MEMBER	f	f	\N	\N	0	\N	\N	\N	\N	2025-05-13 06:12:29.783907+00	c261acda-3fb6-4e2d-95d8-f681d7073807	2025-05-13 05:58:24.801012+00	2025-05-18 02:31:16.761809+00	0
+testuser06@example.com	testuser	$2b$12$ebiciaHvkBgp.ZM5VMaqnuo9Z.WZ4e72cnD6uGPeRsK64KhwElMd2	testuser	MEMBER	f	f	\N	\N	0	\N	\N	\N	\N	2025-05-13 08:18:19.297036+00	f470b4ea-6d7a-4e4b-98c1-51762d005004	2025-05-13 08:11:56.844403+00	2025-05-18 02:31:17.971459+00	0
+lanyurwar@gmail.com	lanyurwar	$2b$12$xoEqbcRhQ0LZdjDW4.it2.gJroykhx5ycxwYvFsBTZ9bKozTULcRG	lanyurwar	MEMBER	f	f	\N	\N	0	\N	\N	\N	\N	2025-05-13 08:16:40.977609+00	4a7c099d-9c14-4b62-9cbf-f5fa50fa2640	2025-05-13 08:16:07.16748+00	2025-05-18 02:31:19.979097+00	0
+testuser05@example.com	testuser05	$2b$12$MzKw7TsqnVovFv9qq1ABx.lMdUz2jN0rz1vZmdcCAj0Z3sNYgn3WS	testuser05	MEMBER	f	f	\N	\N	0	\N	\N	\N	\N	2025-05-13 08:11:01.002207+00	dce7245a-26bc-43ca-8d1c-5460e01dee63	2025-05-13 06:15:10.052499+00	2025-05-18 02:31:20.986035+00	0
+testuser02@example.com	testuser02	$2b$12$V1ymSsHQsBo5ncaq6PtcQupfTr7MkJuN7VHB0rHZ2p2FV3/L6CKrC	testuser02	MEMBER	f	f	\N	\N	0	\N	\N	\N	\N	2025-05-13 08:02:47.269419+00	e0771ad4-b867-403d-81f5-8201ac90d347	2025-05-13 06:04:08.475419+00	2025-05-18 02:31:22.214325+00	0
+testuser08@example.com	testuser08	$2b$12$ahszwj41lmeVJ4P.MbUjAOhI.gWH6tcmJoArsbvKplqqmZsIsrj/6	testuser08	MEMBER	t	t	\N	\N	0	\N	\N	\N	\N	2025-05-14 07:38:38.669423+00	53adc6a6-b1d2-4ff3-86c1-3f8de0e70b1b	2025-05-14 07:37:25.89131+00	2025-05-18 02:32:06.949776+00	0
+testuser03@example.com	testuser03	$2b$12$iHQAq/7dviW2ZMw0yttzXeJ5Sry6u9ChP0fIFIuzmSRSgqfV/kxCm	testuser03	MEMBER	t	f	\N	\N	0	\N	\N	\N	\N	2025-05-17 14:23:46.272383+00	194e3ea0-ea28-47a7-a63a-1c2e4067bd73	2025-05-13 06:06:30.963524+00	2025-05-18 02:27:43.494742+00	0
+adminchuong@example.com	adminchuong	$2b$12$GR/DkigBA9RNtsRKh76JZ.PB66kuKRan.JJY7sWmtxKLW3P8FTtDS	System Admin chuong	ADMIN	t	t	\N	\N	0	\N	\N	\N	\N	2025-05-17 22:38:42.306876+00	85a9b205-8071-48a4-8060-24dd5b6471e0	2025-05-17 15:38:42.082405+00	\N	0
+testuser04@example.com	testuser04	$2b$12$Vp60Lj7YgOYu5pFdj3.zGO2fd56sswzGxvVfVUkyWD/KpN.tjETmO	testuser04	MEMBER	t	f	\N	\N	0	\N	\N	\N	\N	2025-05-17 22:34:14.050042+00	6d15f82a-a17e-4ecc-ba88-7c8c67a834ec	2025-05-13 06:08:21.541896+00	2025-05-13 06:08:21.289882+00	0
+testuser09@example.com	shiba2003	$2b$12$C3DwZNG55ORi8nnh333Dou/Rb.sWXdX18mVVvCyKNeHlvDlNMHj76	Shiba	MEMBER	f	f	\N	\N	0	\N	\N	\N	\N	2025-05-17 15:29:42.500864+00	5d8acda3-86ca-4f8a-a243-fcbfb3a47f7b	2025-05-17 15:29:21.858041+00	2025-05-18 02:29:26.493671+00	0
 \.
 
 
@@ -1656,6 +1729,13 @@ vi-VN-Standard-A	Default Voice	vi	\N	gTTS	t	2025-05-17 01:24:51.361907+00	2025-0
 
 COPY public.website_links (title, url, description, "position", display_order, status, id, created_at, updated_at) FROM stdin;
 \.
+
+
+--
+-- Name: payment_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.payment_id_seq', 1, false);
 
 
 --
@@ -1779,6 +1859,14 @@ ALTER TABLE ONLY public.documents
 
 
 --
+-- Name: documents documents_slug_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.documents
+    ADD CONSTRAINT documents_slug_key UNIQUE (slug);
+
+
+--
 -- Name: favorites favorites_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1824,6 +1912,22 @@ ALTER TABLE ONLY public.languages
 
 ALTER TABLE ONLY public.notifications
     ADD CONSTRAINT notifications_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: payment payment_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.payment
+    ADD CONSTRAINT payment_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: payment payment_transaction_code_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.payment
+    ADD CONSTRAINT payment_transaction_code_key UNIQUE (transaction_code);
 
 
 --
@@ -2305,6 +2409,13 @@ CREATE INDEX ix_documents_id ON public.documents USING btree (id);
 
 
 --
+-- Name: ix_documents_slug; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX ix_documents_slug ON public.documents USING btree (slug);
+
+
+--
 -- Name: ix_documents_title; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2707,6 +2818,14 @@ ALTER TABLE ONLY public.favorites
 
 ALTER TABLE ONLY public.feedback
     ADD CONSTRAINT feedback_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id);
+
+
+--
+-- Name: payment fk_user; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.payment
+    ADD CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES public.users(id);
 
 
 --

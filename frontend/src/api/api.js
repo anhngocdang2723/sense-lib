@@ -109,6 +109,10 @@ export const endpoints = {
     summary: (id) => `/api/documents/${id}/summary`,
     audio: (id) => `/api/documents/${id}/audio`,
     view: (id) => `/api/documents/${id}/view`,
+    userUpload: '/api/documents/user/upload',
+    userDocuments: '/api/documents/user/list',
+    approveDocument: (id) => `/api/documents/${id}/approve`,
+    rejectDocument: (id) => `/api/documents/${id}/reject`,
   },
   // Category endpoints
   categories: {
@@ -164,6 +168,13 @@ export const endpoints = {
     remove: (id) => `/api/favorites/${id}`,
     count: (id) => `/api/favorites/count/${id}`,
     isFavorited: (id) => `/api/favorites/user/${id}`,
+    toggle: (documentId) => `/api/favorites/${documentId}`,
+    check: (documentId) => `/api/favorites/${documentId}/check`,
+    list: '/api/favorites',
+    admin: {
+      all: '/api/favorites/admin/all',
+      delete: (favoriteId) => `/api/favorites/admin/${favoriteId}`
+    }
   },
   // Reading progress endpoints
   readingProgress: {
@@ -174,6 +185,34 @@ export const endpoints = {
     delete: (id) => `/api/reading-progress/${id}`,
     sync: '/api/reading-progress/sync',
     resolveConflict: (id) => `/api/reading-progress/${id}/resolve-conflict`,
+  },
+  ratings: {
+    create: '/api/ratings',
+    byDocument: (documentId) => `/api/ratings/document/${documentId}`,
+    average: (documentId) => `/api/ratings/document/${documentId}/average`,
+    update: (ratingId) => `/api/ratings/${ratingId}`,
+    delete: (ratingId) => `/api/ratings/${ratingId}`,
+    admin: {
+      all: '/api/ratings/admin/all',
+      delete: (ratingId) => `/api/ratings/admin/${ratingId}`
+    }
+  },
+  comments: {
+    create: '/api/comments',
+    byDocument: (documentId) => `/api/comments/document/${documentId}`,
+    update: (commentId) => `/api/comments/${commentId}`,
+    delete: (commentId) => `/api/comments/${commentId}`,
+    admin: {
+      all: '/api/comments/admin/all',
+      updateStatus: (commentId) => `/api/comments/admin/${commentId}/status`,
+      delete: (commentId) => `/api/comments/admin/${commentId}`
+    }
+  },
+  // Grok chat endpoints
+  grok: {
+    chat: '/api/grok/chat',
+    history: '/api/grok/history',
+    clearHistory: '/api/grok/history/clear'
   },
 };
 

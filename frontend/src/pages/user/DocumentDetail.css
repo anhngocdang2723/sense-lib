@@ -6,14 +6,23 @@
 
 .document-detail-container {
   display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  max-width: 950px;
+  flex-direction: column;
+  max-width: 1200px;
   margin: 0 auto;
+  gap: 2rem;
+}
+
+.document-detail-main {
   background: #fff;
   border-radius: 16px;
   box-shadow: 0 2px 8px #0001;
-  padding: 40px 32px;
+  padding: 40px;
+  width: 100%;
+}
+
+.document-detail-header-section {
+  display: flex;
+  gap: 48px;
 }
 
 .document-detail-cover {
@@ -21,9 +30,9 @@
   height: 370px;
   object-fit: cover;
   border-radius: 12px;
-  margin-right: 48px;
   background: #f3f3f3;
   box-shadow: 0 2px 8px #0002;
+  flex-shrink: 0;
 }
 
 .document-detail-info {
@@ -229,4 +238,243 @@
 .summary-text p {
   margin: 0;
   white-space: pre-wrap;
+}
+
+/* Rating and Comments Container */
+.document-feedback-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  width: 100%;
+}
+
+/* Rating Section */
+.document-rating-section {
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+  width: 100%;
+}
+
+.document-rating-section h3 {
+  margin: 0 0 1.5rem 0;
+  color: #2196f3;
+  font-size: 1.5rem;
+}
+
+.rating-stats {
+  display: flex;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.average-rating {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.rating-number {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #2196f3;
+}
+
+.star-display, .star-input {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.star {
+  font-size: 1.8rem;
+  cursor: pointer;
+  color: #ddd;
+  transition: color 0.2s;
+}
+
+.star.filled {
+  color: #ffd700;
+}
+
+.user-rating-input {
+  background-color: #fff;
+  border-radius: 8px;
+  padding: 1.5rem;
+  border: 1px solid #e0e0e0;
+  margin-bottom: 2rem;
+}
+
+.user-rating-input h4 {
+  margin: 0 0 1rem 0;
+  color: #333;
+}
+
+.user-rating-input textarea {
+  width: 100%;
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  resize: vertical;
+  font-family: inherit;
+  min-height: 100px;
+}
+
+.submit-rating-btn {
+  background-color: #2196f3;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.8rem 1.5rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.submit-rating-btn:hover {
+  background-color: #1976d2;
+}
+
+.submit-rating-btn:disabled {
+  background-color: #e0e0e0;
+  cursor: not-allowed;
+}
+
+/* Ratings List */
+.ratings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-height: 600px;
+  overflow-y: auto;
+  padding-right: 1rem;
+}
+
+.ratings-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ratings-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.ratings-list::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 10px;
+}
+
+.rating-item {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.rating-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.rating-user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.rating-author {
+  font-weight: 600;
+  color: #2196f3;
+}
+
+.rating-date {
+  color: #757575;
+  font-size: 0.9rem;
+}
+
+.rating-content {
+  color: #333;
+  line-height: 1.5;
+  margin-top: 0.5rem;
+  white-space: pre-wrap;
+}
+
+/* Remove all comment-related styles */
+.comments-section,
+.new-comment-input,
+.comment,
+.reply-btn,
+.reply-input,
+.replies,
+.reply {
+  display: none;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .document-detail-container {
+    padding: 20px;
+  }
+
+  .document-detail-header-section {
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .document-detail-cover {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 3/4;
+  }
+
+  .document-detail-info {
+    width: 100%;
+  }
+
+  .document-detail-title {
+    font-size: 1.8rem;
+  }
+
+  .document-detail-actions {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .document-detail-actions button {
+    width: 100%;
+  }
+
+  .rating-stats {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .star {
+    font-size: 1.5rem;
+  }
+
+  .rating-header {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .rating-date {
+    margin-top: 0.5rem;
+  }
+}
+
+.no-ratings {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+  font-style: italic;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px dashed #ddd;
 } 

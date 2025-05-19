@@ -4,6 +4,7 @@ import api, { endpoints } from '../../api/api';
 import placeholderImage from '../../assets/img/card/1.png'; // Using card/1.png as placeholder
 import { Link, useNavigate } from 'react-router-dom';
 import { sessionService } from '../../services/sessionService';
+import GrokChat from '../../components/GrokChat';
 
 // Hàm lấy URL ảnh chuẩn
 const getFullImageUrl = (imageUrl) => {
@@ -221,6 +222,8 @@ function Home() {
           <button className="view-more">Xem thêm sách theo trình độ</button>
         </section>
       </div>
+      
+      <GrokChat />
     </div>
   );
 }

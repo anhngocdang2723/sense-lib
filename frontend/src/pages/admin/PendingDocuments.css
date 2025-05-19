@@ -1,0 +1,232 @@
+.pending-documents {
+  padding: 14px;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.pending-documents-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.pending-documents-header h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 500;
+  color: #1a1a1a;
+}
+
+/* Table styles */
+.ant-table-wrapper {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.ant-table {
+  width: 100%;
+}
+
+.ant-table-thead > tr > th {
+  background: #fafafa;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Table cell content handling */
+.ant-table-cell {
+  max-width: 300px;
+  word-break: break-word;
+  white-space: normal;
+}
+
+/* Document details */
+.document-details {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.document-cover {
+  flex-shrink: 0;
+  max-width: 200px;
+}
+
+.document-info {
+  flex-grow: 1;
+  min-width: 300px;
+  max-width: calc(100% - 224px);
+}
+
+.document-info h2 {
+  margin-top: 0;
+  margin-bottom: 16px;
+  font-size: 20px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.document-info p {
+  margin: 8px 0;
+  line-height: 1.5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.document-info strong {
+  display: inline-block;
+  width: 120px;
+  color: #666;
+  flex-shrink: 0;
+}
+
+/* Button styles */
+.ant-btn {
+  border-radius: 4px;
+  height: 32px;
+  padding: 0 16px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.ant-btn-primary {
+  background: #1890ff;
+  border-color: #1890ff;
+}
+
+.ant-btn-primary:hover {
+  background: #40a9ff;
+  border-color: #40a9ff;
+}
+
+.ant-btn-danger {
+  color: #ff4d4f;
+  border-color: #ff4d4f;
+}
+
+.ant-btn-danger:hover {
+  color: #ff7875;
+  border-color: #ff7875;
+  background: #fff;
+}
+
+/* Tag styles */
+.ant-tag {
+  border-radius: 4px;
+  padding: 0 8px;
+  height: 22px;
+  line-height: 20px;
+  font-size: 12px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ant-tag-blue {
+  color: #1890ff;
+  background: #e6f7ff;
+  border-color: #91d5ff;
+}
+
+/* Action buttons container */
+.ant-space {
+  gap: 8px !important;
+  width: 100%;
+  flex-wrap: nowrap;
+}
+
+.ant-space-item {
+  flex-shrink: 0;
+}
+
+/* Tooltip styles */
+.ant-tooltip {
+  max-width: 300px;
+}
+
+.ant-tooltip-inner {
+  padding: 6px 8px;
+  font-size: 12px;
+  border-radius: 4px;
+}
+
+/* Popconfirm styles */
+.ant-popconfirm {
+  max-width: 300px;
+}
+
+.ant-popconfirm-message {
+  padding: 8px 0;
+}
+
+.ant-popconfirm-buttons {
+  margin-top: 8px;
+}
+
+/* Link styles */
+.ant-table a {
+  color: #1890ff;
+  text-decoration: none;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+}
+
+.ant-table a:hover {
+  color: #40a9ff;
+  text-decoration: underline;
+}
+
+/* Icon styles */
+.anticon {
+  color: #666;
+  flex-shrink: 0;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .pending-documents {
+    padding: 16px;
+  }
+
+  .document-details {
+    flex-direction: column;
+  }
+
+  .document-cover {
+    max-width: 100%;
+    text-align: center;
+  }
+
+  .document-info {
+    margin-top: 24px;
+    max-width: 100%;
+  }
+
+  .ant-table {
+    min-width: 100%;
+  }
+
+  .ant-table-cell {
+    max-width: none;
+  }
+
+  .ant-space {
+    flex-wrap: wrap;
+  }
+  
+  .ant-space-item {
+    margin-bottom: 8px;
+  }
+} 

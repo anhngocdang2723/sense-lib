@@ -187,7 +187,30 @@
   background: #fff;
 }
 
-/* Tag styles */
+/* Approve/Reject button styles */
+.ant-btn-approve {
+  color: #52c41a;
+  border-color: #52c41a;
+}
+
+.ant-btn-approve:hover {
+  color: #73d13d;
+  border-color: #73d13d;
+  background: #fff;
+}
+
+.ant-btn-reject {
+  color: #ff4d4f;
+  border-color: #ff4d4f;
+}
+
+.ant-btn-reject:hover {
+  color: #ff7875;
+  border-color: #ff7875;
+  background: #fff;
+}
+
+/* Status tag styles */
 .ant-tag {
   border-radius: 4px;
   padding: 0 8px;
@@ -198,6 +221,70 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.ant-tag-orange {
+  color: #fa8c16;
+  background: #fff7e6;
+  border-color: #ffd591;
+}
+
+.ant-tag-green {
+  color: #52c41a;
+  background: #f6ffed;
+  border-color: #b7eb8f;
+}
+
+.ant-tag-red {
+  color: #ff4d4f;
+  background: #fff1f0;
+  border-color: #ffa39e;
+}
+
+/* Action buttons container */
+.ant-space {
+  gap: 8px !important;
+  width: 100%;
+  flex-wrap: nowrap;
+}
+
+.ant-space-item {
+  flex-shrink: 0;
+}
+
+/* Tooltip styles */
+.ant-tooltip {
+  max-width: 300px;
+}
+
+.ant-tooltip-inner {
+  padding: 6px 8px;
+  font-size: 12px;
+  border-radius: 4px;
+}
+
+/* Popconfirm styles */
+.ant-popconfirm {
+  max-width: 300px;
+}
+
+.ant-popconfirm-message {
+  padding: 8px 0;
+}
+
+.ant-popconfirm-buttons {
+  margin-top: 8px;
+}
+
+/* Responsive styles for action buttons */
+@media (max-width: 768px) {
+  .ant-space {
+    flex-wrap: wrap;
+  }
+  
+  .ant-space-item {
+    margin-bottom: 8px;
+  }
 }
 
 /* Image preview styles */
@@ -234,12 +321,6 @@
 
 .ant-switch-checked {
   background-color: #1890ff;
-}
-
-/* Space styles */
-.ant-space {
-  gap: 8px !important;
-  width: 100%;
 }
 
 /* Link styles */

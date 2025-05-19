@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Modal, Form, Input, Select, message, Space, Popconfirm, Tag, Tooltip, Upload, Image, Switch, Spin } from 'antd';
-import { EditOutlined, DeleteOutlined, UploadOutlined, FileTextOutlined, EyeOutlined, InboxOutlined, PlusOutlined, SearchOutlined, UserOutlined, FolderOutlined, ShopOutlined, CalendarOutlined } from '@ant-design/icons';
+import { EditOutlined, DeleteOutlined, UploadOutlined, FileTextOutlined, EyeOutlined, InboxOutlined, PlusOutlined, SearchOutlined, UserOutlined, FolderOutlined, ShopOutlined, CalendarOutlined, CheckOutlined, CloseOutlined } from '@ant-design/icons';
 import api, { endpoints, getApiUrl } from '../../api/api';
 import './Documents.css';
 import dayjs from 'dayjs';
@@ -46,7 +46,12 @@ const AdminDocuments = () => {
   const fetchDocuments = async () => {
     try {
       setLoading(true);
-      const response = await api.get(endpoints.documents.list);
+      const response = await api.get(endpoints.documents.list, {
+        params: { 
+          status: 'available',
+          limit: 100  // Increase limit to get more documents
+        }
+      });
       console.log('Documents response:', response.data);
       setDocuments(response.data.documents || response.data || []);
     } catch (error) {
@@ -403,6 +408,46 @@ const AdminDocuments = () => {
       ),
   });
 
+  // Add new handlers for approve/reject
+  const handleApprove = async (id) => {
+    try {
+      await api.put(endpoints.documents.approve(id));
+      message.success('Phê duyệt tài liệu thành công');
+      fetchDocuments();
+    } catch (error) {
+      console.error('Error approving document:', error);
+      message.error('Không thể phê duyệt tài liệu');
+    }
+  };
+
+  const handleReject = async (id) => {
+    try {
+      await api.put(endpoints.documents.reject(id));
+      message.success('Từ chối tài liệu thành công');
+      fetchDocuments();
+    } catch (error) {
+      console.error('Error rejecting document:', error);
+      message.error('Không thể từ chối tài liệu');
+    }
+  };
+
+  // Update status filters
+  const statusFilters = [
+    { text: 'Đã duyệt', value: 'available' },
+    { text: 'Không hoạt động', value: 'archived' }
+  ];
+
+  // Update status colors
+  const statusColors = {
+    'available': 'green',
+    'archived': 'red'
+  };
+
+  const statusLabels = {
+    'available': 'Đã duyệt',
+    'archived': 'Không hoạt động'
+  };
+
   // Columns must be inside the component to access handlers
   const columns = [
     {
@@ -443,7 +488,7 @@ const AdminDocuments = () => {
           <Space direction="vertical" size="small">
             <Space>
               <span>{text}</span>
-              {record.status === 'INACTIVE' && <Tag color="red">Không hoạt động</Tag>}
+              {record.status === 'archived' && <Tag color="red">Không hoạt động</Tag>}
             </Space>
             {record.code && (
               <Space size="small">
@@ -599,41 +644,72 @@ const AdminDocuments = () => {
       width: 110,
       sorter: (a, b) => a.status.localeCompare(b.status),
       sortDirections: ['ascend', 'descend'],
-      filters: [
-        { text: 'Hoạt động', value: 'ACTIVE' },
-        { text: 'Không hoạt động', value: 'INACTIVE' },
-      ],
+      filters: statusFilters,
       onFilter: (value, record) => record.status === value,
       render: (_, record) => {
-        const statusColors = {
-          'ACTIVE': 'green',
-          'INACTIVE': 'red'
-        };
-        return <Tag color={statusColors[record.status] || 'default'}>{record.status}</Tag>;
+        return <Tag color={statusColors[record.status] || 'default'}>{statusLabels[record.status]}</Tag>;
       }
+    },
+    {
+      title: 'Điểm',
+      key: 'score',
+      width: 100,
+      sorter: (a, b) => a.score - b.score,
+      sortDirections: ['ascend', 'descend'],
+      render: (_, record) => (
+        <Tag color="blue">{record.score || 0}</Tag>
+      )
     },
     {
       title: 'Thao tác',
       key: 'action',
-      width: 110,
+      width: 180,
       render: (_, record) => (
         <Space>
           <Tooltip title="Xem chi tiết">
             <Button icon={<EyeOutlined />} onClick={() => handleViewDetails(record)} />
           </Tooltip>
-          <Tooltip title="Chỉnh sửa">
-            <Button icon={<EditOutlined />} onClick={() => handleEdit(record)} />
-          </Tooltip>
-          <Tooltip title="Xóa">
-            <Popconfirm
-              title="Bạn có chắc chắn muốn xóa tài liệu này?"
-              onConfirm={() => handleDelete(record.id)}
-              okText="Có"
-              cancelText="Không"
-            >
-              <Button danger icon={<DeleteOutlined />} />
-            </Popconfirm>
-          </Tooltip>
+          {record.status === 'archived' && (
+            <>
+              <Tooltip title="Phê duyệt">
+                <Popconfirm
+                  title="Bạn có chắc chắn muốn phê duyệt tài liệu này?"
+                  onConfirm={() => handleApprove(record.id)}
+                  okText="Có"
+                  cancelText="Không"
+                >
+                  <Button type="primary" icon={<CheckOutlined />} />
+                </Popconfirm>
+              </Tooltip>
+              <Tooltip title="Từ chối">
+                <Popconfirm
+                  title="Bạn có chắc chắn muốn từ chối tài liệu này?"
+                  onConfirm={() => handleReject(record.id)}
+                  okText="Có"
+                  cancelText="Không"
+                >
+                  <Button danger icon={<CloseOutlined />} />
+                </Popconfirm>
+              </Tooltip>
+            </>
+          )}
+          {record.status !== 'archived' && (
+            <>
+              <Tooltip title="Chỉnh sửa">
+                <Button icon={<EditOutlined />} onClick={() => handleEdit(record)} />
+              </Tooltip>
+              <Tooltip title="Xóa">
+                <Popconfirm
+                  title="Bạn có chắc chắn muốn xóa tài liệu này?"
+                  onConfirm={() => handleDelete(record.id)}
+                  okText="Có"
+                  cancelText="Không"
+                >
+                  <Button danger icon={<DeleteOutlined />} />
+                </Popconfirm>
+              </Tooltip>
+            </>
+          )}
         </Space>
       )
     }
@@ -1158,6 +1234,7 @@ const AdminDocuments = () => {
               <p><strong>Phiên bản:</strong> {selectedDocument.version}</p>
               <p><strong>Trạng thái:</strong> {selectedDocument.status}</p>
               <p><strong>Quyền truy cập:</strong> {selectedDocument.access_level}</p>
+              <p><strong>Điểm:</strong> {selectedDocument.score || 0}</p>
               <p><strong>Người thêm:</strong> {selectedDocument.added_by_user?.full_name || 'Không có'}</p>
               <p><strong>Ngày thêm:</strong> {new Date(selectedDocument.created_at).toLocaleString()}</p>
             </div>

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from ..core.deps import get_db, get_current_admin_user
+from ..core.deps import get_db, get_current_admin_user, get_current_user
 from ..schemas.language import LanguageCreate, LanguageUpdate, LanguageResponse
 from ..models.language import Language
 from ..models.user import User
@@ -31,7 +31,7 @@ def list_languages(
     limit: int = 100,
     include_inactive: bool = False,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_admin_user)
+    current_user: User = Depends(get_current_user)
 ):
     """List all languages (admin only)
     - include_inactive: if True, include inactive languages in the response

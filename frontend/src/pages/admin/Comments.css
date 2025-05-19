@@ -1,0 +1,59 @@
+.comments-container {
+  padding: 24px;
+  background: #fff;
+  min-height: 100vh;
+}
+
+.comments-container h1 {
+  margin-bottom: 24px;
+  color: #1a1a1a;
+  font-size: 24px;
+}
+
+.comments-container .ant-table {
+  margin-top: 16px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.comments-container .ant-table-thead > tr > th {
+  background: #f5f5f5;
+  font-weight: 600;
+}
+
+.comments-container .ant-table-tbody > tr:hover > td {
+  background: #f0f7ff;
+}
+
+.comments-container .ant-space {
+  gap: 8px;
+}
+
+.comments-container .ant-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.comments-container .ant-modal-body {
+  padding: 24px;
+}
+
+.comments-container .ant-modal-body p {
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.comments-container .ant-modal-body strong {
+  color: #1a1a1a;
+  margin-right: 8px;
+}
+
+.comments-container .ant-tag {
+  min-width: 70px;
+  text-align: center;
+}
+
+.comments-container .ant-tooltip {
+  max-width: 500px;
+} 

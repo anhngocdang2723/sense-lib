@@ -1,6 +1,6 @@
 import React from 'react';
 import { Layout, Menu, Button, Avatar, Dropdown } from 'antd';
-import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
+import { useLocation, Outlet, useNavigate } from 'react-router-dom';
 import {
   FileOutlined,
   UserOutlined,
@@ -12,21 +12,30 @@ import {
   FolderOutlined,
   LogoutOutlined,
   BellOutlined,
+  ClockCircleOutlined,
+  CommentOutlined,
+  StarOutlined,
+  HeartOutlined,
+  InteractionOutlined,
 } from '@ant-design/icons';
 import './AdminLayout.css';
+import { useAuth } from '../../contexts/AuthContext';
+import { adminRoutes } from '../../routes/AdminRoutes';
 
 const { Header, Sider, Content } = Layout;
 
 const AdminLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
-  // Group menu items by category
+  // Convert admin routes to menu structure
   const menuItems = [
     {
-      key: 'dashboard',
+      key: '/admin/dashboard',
       icon: <DashboardOutlined />,
-      label: <Link to="/admin/dashboard">Dashboard</Link>,
+      label: 'Dashboard',
+      onClick: () => navigate('/admin/dashboard'),
     },
     {
       type: 'divider',
@@ -38,17 +47,26 @@ const AdminLayout = () => {
         {
           key: '/admin/documents',
           icon: <FileOutlined />,
-          label: <Link to="/admin/documents">Quản lý tài liệu</Link>,
+          label: 'Quản lý tài liệu',
+          onClick: () => navigate('/admin/documents'),
+        },
+        {
+          key: '/admin/pending-documents',
+          icon: <ClockCircleOutlined />,
+          label: 'Tài liệu chờ duyệt',
+          onClick: () => navigate('/admin/pending-documents'),
         },
         {
           key: '/admin/categories',
           icon: <FolderOutlined />,
-          label: <Link to="/admin/categories">Quản lý danh mục</Link>,
+          label: 'Quản lý danh mục',
+          onClick: () => navigate('/admin/categories'),
         },
         {
           key: '/admin/tags',
           icon: <TagsOutlined />,
-          label: <Link to="/admin/tags">Quản lý thể loại</Link>,
+          label: 'Quản lý thể loại',
+          onClick: () => navigate('/admin/tags'),
         },
       ],
     },
@@ -59,12 +77,39 @@ const AdminLayout = () => {
         {
           key: '/admin/authors',
           icon: <TeamOutlined />,
-          label: <Link to="/admin/authors">Quản lý tác giả</Link>,
+          label: 'Quản lý tác giả',
+          onClick: () => navigate('/admin/authors'),
         },
         {
           key: '/admin/publishers',
           icon: <BookOutlined />,
-          label: <Link to="/admin/publishers">Quản lý nhà xuất bản</Link>,
+          label: 'Quản lý nhà xuất bản',
+          onClick: () => navigate('/admin/publishers'),
+        },
+      ],
+    },
+    {
+      key: 'interactions',
+      label: 'Quản lý tương tác',
+      icon: <InteractionOutlined />,
+      children: [
+        {
+          key: '/admin/comments',
+          icon: <CommentOutlined />,
+          label: 'Quản lý bình luận',
+          onClick: () => navigate('/admin/comments'),
+        },
+        {
+          key: '/admin/ratings',
+          icon: <StarOutlined />,
+          label: 'Quản lý đánh giá',
+          onClick: () => navigate('/admin/ratings'),
+        },
+        {
+          key: '/admin/favorites',
+          icon: <HeartOutlined />,
+          label: 'Quản lý yêu thích',
+          onClick: () => navigate('/admin/favorites'),
         },
       ],
     },
@@ -75,23 +120,21 @@ const AdminLayout = () => {
         {
           key: '/admin/users',
           icon: <UserOutlined />,
-          label: <Link to="/admin/users">Quản lý người dùng</Link>,
+          label: 'Quản lý người dùng',
+          onClick: () => navigate('/admin/users'),
         },
         {
           key: '/admin/settings',
           icon: <SettingOutlined />,
-          label: <Link to="/admin/settings">Cài đặt</Link>,
+          label: 'Cài đặt',
+          onClick: () => navigate('/admin/settings'),
         },
       ],
     },
   ];
 
-  const handleLogout = () => {
-    // Clear local storage
-    localStorage.removeItem('token');
-    localStorage.removeItem('userRole');
-    // Redirect to login page
-    navigate('/login');
+  const handleLogout = async () => {
+    await logout();
   };
 
   const userMenuItems = [
@@ -128,7 +171,7 @@ const AdminLayout = () => {
           theme="dark"
           mode="inline"
           selectedKeys={[location.pathname]}
-          defaultOpenKeys={['content', 'metadata', 'system']}
+          defaultOpenKeys={['content', 'metadata', 'system', 'interactions']}
           items={menuItems}
         />
       </Sider>

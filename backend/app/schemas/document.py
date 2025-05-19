@@ -73,6 +73,7 @@ class DocumentResponse(DocumentBase):
     status: DocumentStatus
     download_count: int = 0
     view_count: int = 0
+    score: int = 0
     is_featured: bool = False
     ai_summary: Optional[str] = None
     added_by: UUID4

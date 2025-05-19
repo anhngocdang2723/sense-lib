@@ -16,6 +16,7 @@ const PDFViewer = ({ pdfUrl, documentId }) => {
   const [lastSavedPage, setLastSavedPage] = useState(1);
   const [saveStatus, setSaveStatus] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [downloadCount, setDownloadCount] = useState(0);
 
   // Variables
   let pdfDoc = null;
@@ -104,6 +105,27 @@ const PDFViewer = ({ pdfUrl, documentId }) => {
       console.error('Error response:', error.response);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Handle PDF download
+  const handleDownload = async (e) => {
+    e.preventDefault();
+    try {
+      // Call API to increment download count
+      await api.post(endpoints.documents.download(documentId));
+      setDownloadCount(prev => prev + 1);
+      
+      // Create a temporary link to download the PDF
+      const link = document.createElement('a');
+      link.href = pdfUrl;
+      link.download = pdfUrl.split('/').pop();
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      message.error('Không thể tải file PDF');
     }
   };
 
@@ -381,6 +403,25 @@ const PDFViewer = ({ pdfUrl, documentId }) => {
               {saveStatus}
             </span>
           )}
+          <button 
+            id="download-pdf" 
+            onClick={handleDownload}
+            style={{ 
+              marginLeft: '10px', 
+              background: '#2196F3',
+              color: 'white',
+              padding: '8px 16px',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            <i className="fas fa-download"></i>
+            Tải PDF ({downloadCount})
+          </button>
         </div>
       </div>
       <div className="canvas-container">

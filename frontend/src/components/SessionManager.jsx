@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { sessionService } from '../services/sessionService';
 import './SessionManager.css';
+import { useAuth } from '../contexts/AuthContext';
 
 function SessionManager() {
+  const { isAuthenticated, loading } = useAuth();
   const [sessions, setSessions] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const currentSession = sessionService.getSession();
 
@@ -36,9 +37,8 @@ function SessionManager() {
     loadSessions();
   }, []);
 
-  if (loading) {
-    return <div className="session-manager loading">Đang tải...</div>;
-  }
+  if (loading) return <div>Đang xác thực...</div>;
+  if (!isAuthenticated) return <div>Bạn chưa đăng nhập</div>;
 
   return (
     <div className="session-manager">

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from uuid import UUID
-from ..core.deps import get_db, get_current_admin_user
+from ..core.deps import get_db, get_current_admin_user, get_current_user
 from ..schemas.tag import TagCreate, TagUpdate, TagResponse
 from ..models.tag import Tag
 from ..models.user import User
@@ -38,7 +38,7 @@ def list_tags(
     status: Optional[str] = None,
     include_inactive: bool = False,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_admin_user)
+    current_user: User = Depends(get_current_user)
 ):
     """List all tags (admin only)
     - include_inactive: if True, include inactive tags in the response

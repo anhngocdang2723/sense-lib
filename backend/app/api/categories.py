@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from uuid import UUID
-from ..core.deps import get_db, get_current_admin_user
+from ..core.deps import get_db, get_current_admin_user, get_current_user
 from ..schemas.category import CategoryCreate, CategoryUpdate, CategoryResponse, CategoryNested, CategoryFlat
 from ..models.category import Category
 from ..models.user import User
@@ -70,7 +70,7 @@ def list_categories(
     status: Optional[str] = None,
     include_inactive: bool = False,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_admin_user)
+    current_user: User = Depends(get_current_user)
 ):
     """List all categories (admin only)
     - include_inactive: if True, include inactive categories in the response
@@ -93,7 +93,7 @@ def get_category(
     category_id: UUID,
     include_inactive: bool = False,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_admin_user)
+    current_user: User = Depends(get_current_user)
 ):
     """Get a specific category by ID (admin only)
     - include_inactive: if True, return inactive categories

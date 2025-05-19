@@ -40,6 +40,7 @@ class UserResponse(UserBase):
     role: UserRole
     is_active: bool
     is_verified: bool
+    score: int = 0
     avatar_url: Optional[str] = None
     last_login: Optional[datetime] = None
     created_at: datetime

@@ -1,21 +1,62 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import './Header.css';
 import logo from '../assets/original.png';
+import { useAuth } from '../contexts/AuthContext';
+import { UploadOutlined, UserOutlined, LogoutOutlined, SettingOutlined, HeartOutlined } from '@ant-design/icons';
+import { Avatar, Dropdown, Space } from 'antd';
 
 function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   };
 
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
+
+  const userMenuItems = {
+    items: [
+      {
+        key: 'profile',
+        label: <Link to="/profile">Thông tin cá nhân</Link>,
+        icon: <UserOutlined />,
+      },
+      {
+        key: 'favorites',
+        label: <Link to="/favorites">Tài liệu yêu thích</Link>,
+        icon: <HeartOutlined />,
+      },
+      {
+        key: 'settings',
+        label: <Link to="/settings">Cài đặt</Link>,
+        icon: <SettingOutlined />,
+      },
+      {
+        type: 'divider',
+      },
+      {
+        key: 'logout',
+        label: 'Đăng xuất',
+        icon: <LogoutOutlined />,
+        onClick: handleLogout,
+      },
+    ],
+  };
+
   return (
     <nav className="navbar">
       <div className="navbar-left">
-        <img src={logo} alt="Logo" className="logo" />
-        <span className="library-name">SenseLib</span>
+        <Link to="/">
+          <img src={logo} alt="Logo" className="logo" />
+          <span className="library-name">SenseLib</span>
+        </Link>
       </div>
 
       <div className="navbar-center">
@@ -36,10 +77,28 @@ function Header() {
       </button>
 
       <div className={`navbar-right ${isMenuOpen ? 'active' : ''}`}>
-        <Link to="/resources" className="nav-button" onClick={() => setIsMenuOpen(false)}>Học liệu số</Link>
-        <Link to="/library" className="nav-button" onClick={() => setIsMenuOpen(false)}>Thư viện cá nhân</Link>
+        <Link to="/documents" className="nav-button" onClick={() => setIsMenuOpen(false)}>Danh sách tài liệu</Link>
         <Link to="/about" className="nav-button" onClick={() => setIsMenuOpen(false)}>Giới thiệu</Link>
-        <Link to="/login" className="login-button" onClick={() => setIsMenuOpen(false)}>Đăng nhập</Link>
+        <Link to="/contact" className="nav-button" onClick={() => setIsMenuOpen(false)}>Phản hồi</Link>
+        {!user ? (
+          <Link to="/login" className="login-button" onClick={() => setIsMenuOpen(false)}>Đăng nhập</Link>
+        ) : (
+          <>
+            <Link to="/user/upload" className="nav-button">
+              <UploadOutlined /> Tải lên tài liệu
+            </Link>
+            <Dropdown menu={userMenuItems} placement="bottomRight" trigger={['click']}>
+              <Space className="user-avatar-dropdown">
+                <Avatar 
+                  src={user.avatar_url} 
+                  icon={<UserOutlined />} 
+                  size="default"
+                />
+                <span className="user-name">{user.username}</span>
+              </Space>
+            </Dropdown>
+          </>
+        )}
       </div>
     </nav>
   );

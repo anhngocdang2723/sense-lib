@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Boolean, Integer, DateTime, Enum as SQLEnum, ForeignKey, CheckConstraint, text
+from sqlalchemy import Column, String, Boolean, Integer, DateTime, Enum as SQLEnum, ForeignKey, CheckConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
 from .base import BaseModel
@@ -23,6 +23,9 @@ class User(BaseModel):
     avatar_url = Column(String, nullable=True)
     last_login = Column(DateTime(timezone=True), nullable=True)
 
+    # Thêm cột score
+    score = Column(Integer, default=0)
+
     # Relationships
     documents = relationship("Document", back_populates="added_by_user", foreign_keys="Document.added_by")
     comments = relationship("Comment", back_populates="user")
@@ -40,4 +43,5 @@ class User(BaseModel):
         CheckConstraint('length(username) >= 3', name='check_username_length'),
         CheckConstraint('failed_login_attempts >= 0', name='check_failed_attempts'),
         CheckConstraint("email ~ '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$'", name='check_email_format'),
-    ) 
+        CheckConstraint('score >= 0', name='check_user_score_non_negative'),  # ✅ Ràng buộc cho score
+    )

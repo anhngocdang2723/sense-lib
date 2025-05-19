@@ -1,0 +1,568 @@
+[
+    {
+      "table": "users",
+      "fields": [
+        { "name": "id", "type": "UUID", "primary": true, "index": true, "default": "gen_random_uuid()" },
+        { "name": "email", "type": "VARCHAR", "unique": true, "index": true, "nullable": false },
+        { "name": "username", "type": "VARCHAR", "unique": true, "index": true, "nullable": false },
+        { "name": "hashed_password", "type": "VARCHAR", "nullable": false },
+        { "name": "full_name", "type": "VARCHAR", "nullable": false },
+        { "name": "role", "type": "ENUM", "enum_values": ["admin", "member"], "default": "member" },
+        { "name": "is_active", "type": "BOOLEAN", "default": true },
+        { "name": "is_verified", "type": "BOOLEAN", "default": false },
+        { "name": "verification_code", "type": "VARCHAR", "nullable": true },
+        { "name": "verification_code_expires", "type": "TIMESTAMP", "nullable": true },
+        { "name": "failed_login_attempts", "type": "INTEGER", "default": 0 },
+        { "name": "lockout_until", "type": "TIMESTAMP", "nullable": true },
+        { "name": "phone_number", "type": "VARCHAR", "nullable": true },
+        { "name": "address", "type": "VARCHAR", "nullable": true },
+        { "name": "avatar_url", "type": "VARCHAR", "nullable": true },
+        { "name": "last_login", "type": "TIMESTAMP", "nullable": true },
+        { "name": "created_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" },
+        { "name": "updated_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP", "on_update": "CURRENT_TIMESTAMP" }
+      ],
+      "constraints": [
+        { "type": "CHECK", "name": "check_email_length", "condition": "length(email) >= 5" },
+        { "type": "CHECK", "name": "check_username_length", "condition": "length(username) >= 3" },
+        { "type": "CHECK", "name": "check_failed_attempts", "condition": "failed_login_attempts >= 0" },
+        { "type": "CHECK", "name": "check_email_format", "condition": "email ~ '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$'" },
+        { "type": "CHECK", "name": "check_phone_format", "condition": "phone_number IS NULL OR phone_number ~ '^\\+?[0-9\\s-()]{8,20}$'" }
+      ]
+    },
+    {
+      "table": "publishers",
+      "fields": [
+        { "name": "id", "type": "UUID", "primary": true, "index": true, "default": "gen_random_uuid()" },
+        { "name": "name", "type": "VARCHAR", "nullable": false, "index": true },
+        { "name": "description", "type": "TEXT", "nullable": true },
+        { "name": "website", "type": "VARCHAR", "nullable": true },
+        { "name": "email", "type": "VARCHAR", "nullable": true },
+        { "name": "phone", "type": "VARCHAR", "nullable": true },
+        { "name": "address", "type": "TEXT", "nullable": true },
+        { "name": "status", "type": "ENUM", "enum_values": ["active", "inactive"], "default": "active" },
+        { "name": "created_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" },
+        { "name": "updated_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP", "on_update": "CURRENT_TIMESTAMP" }
+      ],
+      "constraints": [
+        { "type": "CHECK", "name": "check_publisher_name", "condition": "length(name) >= 2" },
+        { "type": "UNIQUE", "name": "uq_publisher_name", "fields": ["name"] },
+        { "type": "CHECK", "name": "check_publisher_email", "condition": "email IS NULL OR email ~ '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$'" },
+        { "type": "CHECK", "name": "check_publisher_phone", "condition": "phone IS NULL OR phone ~ '^\\+?[0-9\\s-()]{8,20}$'" }
+      ]
+    },
+    {
+      "table": "authors",
+      "fields": [
+        { "name": "id", "type": "UUID", "primary": true, "index": true, "default": "gen_random_uuid()" },
+        { "name": "name", "type": "VARCHAR", "nullable": false, "index": true },
+        { "name": "bio", "type": "TEXT", "nullable": true },
+        { "name": "email", "type": "VARCHAR", "nullable": true },
+        { "name": "website", "type": "VARCHAR", "nullable": true },
+        { "name": "birth_date", "type": "DATE", "nullable": true },
+        { "name": "death_date", "type": "DATE", "nullable": true },
+        { "name": "nationality", "type": "VARCHAR", "nullable": true },
+        { "name": "status", "type": "ENUM", "enum_values": ["active", "inactive"], "default": "active" },
+        { "name": "created_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" },
+        { "name": "updated_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP", "on_update": "CURRENT_TIMESTAMP" }
+      ],
+      "constraints": [
+        { "type": "CHECK", "name": "check_author_name", "condition": "length(name) >= 2" },
+        { "type": "UNIQUE", "name": "uq_author_name", "fields": ["name"] },
+        { "type": "CHECK", "name": "check_author_email", "condition": "email IS NULL OR email ~ '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$'" },
+        { "type": "CHECK", "name": "check_author_dates", "condition": "birth_date IS NULL OR death_date IS NULL OR birth_date < death_date" }
+      ]
+    },
+    {
+      "table": "document_author",
+      "fields": [
+        { "name": "document_id", "type": "UUID", "foreign": { "table": "documents", "field": "id" } },
+        { "name": "author_id", "type": "UUID", "foreign": { "table": "authors", "field": "id" } },
+        { "name": "created_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" }
+      ],
+      "constraints": [
+        { "type": "UNIQUE", "name": "uq_document_author", "fields": ["document_id", "author_id"] }
+      ]
+    },
+    {
+      "table": "categories",
+      "fields": [
+        { "name": "id", "type": "UUID", "primary": true, "index": true, "default": "gen_random_uuid()" },
+        { "name": "name", "type": "VARCHAR", "nullable": false, "index": true },
+        { "name": "description", "type": "TEXT", "nullable": true },
+        { "name": "parent_id", "type": "UUID", "foreign": { "table": "categories", "field": "id" }, "nullable": true },
+        { "name": "slug", "type": "VARCHAR", "unique": true, "index": true },
+        { "name": "icon", "type": "VARCHAR", "nullable": true },
+        { "name": "status", "type": "ENUM", "enum_values": ["active", "inactive"], "default": "active" },
+        { "name": "created_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" },
+        { "name": "updated_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP", "on_update": "CURRENT_TIMESTAMP" }
+      ],
+      "constraints": [
+        { "type": "CHECK", "name": "check_category_name", "condition": "length(name) >= 2" }
+      ]
+    },
+    {
+      "table": "tags",
+      "fields": [
+        { "name": "id", "type": "UUID", "primary": true, "index": true, "default": "gen_random_uuid()" },
+        { "name": "name", "type": "VARCHAR", "unique": true, "nullable": false, "index": true },
+        { "name": "description", "type": "TEXT", "nullable": true },
+        { "name": "status", "type": "ENUM", "enum_values": ["active", "inactive"], "default": "active" },
+        { "name": "created_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" },
+        { "name": "updated_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP", "on_update": "CURRENT_TIMESTAMP" }
+      ],
+      "constraints": [
+        { "type": "CHECK", "name": "check_tag_name", "condition": "length(name) >= 2" }
+      ]
+    },
+    {
+      "table": "document_tag",
+      "fields": [
+        { "name": "document_id", "type": "UUID", "foreign": { "table": "documents", "field": "id" } },
+        { "name": "tag_id", "type": "UUID", "foreign": { "table": "tags", "field": "id" } }
+      ],
+      "constraints": [
+        { "type": "UNIQUE", "name": "uq_document_tag", "fields": ["document_id", "tag_id"] }
+      ]
+    },
+    {
+      "table": "documents",
+      "fields": [
+        { "name": "id", "type": "UUID", "primary": true, "index": true, "default": "gen_random_uuid()" },
+        { "name": "title", "type": "VARCHAR", "nullable": false, "index": true },
+        { "name": "description", "type": "TEXT", "nullable": true },
+        { "name": "publisher_id", "type": "UUID", "foreign": { "table": "publishers", "field": "id" }, "nullable": true },
+        { "name": "publication_year", "type": "INTEGER", "nullable": true },
+        { "name": "isbn", "type": "VARCHAR", "unique": true, "nullable": true },
+        { "name": "file_name", "type": "VARCHAR", "nullable": false, "index": true },
+        { "name": "file_hash", "type": "VARCHAR", "unique": true, "index": true },
+        { "name": "file_type", "type": "UUID", "foreign": { "table": "file_types", "field": "id" }, "nullable": false },
+        { "name": "file_size", "type": "INTEGER", "nullable": false },
+        { "name": "status", "type": "ENUM", "enum_values": ["available", "restricted", "maintenance", "pending", "approved", "rejected"], "default": "pending" },
+        { "name": "category_id", "type": "UUID", "foreign": { "table": "categories", "field": "id" }, "nullable": false },
+        { "name": "access_level", "type": "ENUM", "enum_values": ["public", "restricted", "private"], "default": "public" },
+        { "name": "language", "type": "VARCHAR", "foreign": { "table": "languages", "field": "code" }, "default": "en" },
+        { "name": "version", "type": "VARCHAR", "default": "1.0" },
+        { "name": "download_count", "type": "INTEGER", "default": 0 },
+        { "name": "view_count", "type": "INTEGER", "default": 0 },
+        { "name": "is_featured", "type": "BOOLEAN", "default": false },
+        { "name": "ai_summary", "type": "TEXT", "nullable": true },
+        { "name": "created_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" },
+        { "name": "updated_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP", "on_update": "CURRENT_TIMESTAMP" },
+        { "name": "added_by", "type": "UUID", "foreign": { "table": "users", "field": "id" }, "nullable": false }
+      ],
+      "constraints": [
+        { "type": "CHECK", "name": "check_file_size", "condition": "file_size > 0" },
+        { "type": "CHECK", "name": "check_publication_year", "condition": "publication_year >= 1800 AND publication_year <= EXTRACT(YEAR FROM CURRENT_DATE)" },
+        { "type": "CHECK", "name": "check_isbn", "condition": "isbn IS NULL OR (length(isbn) IN (10, 13) AND isbn ~ '^[0-9-]+$')" },
+        { "type": "CHECK", "name": "check_version_format", "condition": "version ~ '^[0-9]+\\.[0-9]+(\\.[0-9]+)?$'" }
+      ]
+    },
+    {
+      "table": "document_access",
+      "fields": [
+        { "name": "id", "type": "UUID", "primary": true, "index": true, "default": "gen_random_uuid()" },
+        { "name": "document_id", "type": "UUID", "foreign": { "table": "documents", "field": "id" }, "nullable": false },
+        { "name": "user_id", "type": "UUID", "foreign": { "table": "users", "field": "id" }, "nullable": false },
+        { "name": "granted_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" },
+        { "name": "expiry_date", "type": "TIMESTAMP", "nullable": true },
+        { "name": "status", "type": "ENUM", "enum_values": ["active", "expired", "revoked"], "default": "active" },
+        { "name": "access_count", "type": "INTEGER", "default": 0 },
+        { "name": "last_accessed", "type": "TIMESTAMP", "nullable": true },
+        { "name": "extension_count", "type": "INTEGER", "default": 0 },
+        { "name": "revoked_at", "type": "TIMESTAMP", "nullable": true },
+        { "name": "created_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" },
+        { "name": "updated_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP", "on_update": "CURRENT_TIMESTAMP" }
+      ]
+    },
+    {
+      "table": "access_logs",
+      "fields": [
+        { "name": "id", "type": "UUID", "primary": true, "index": true, "default": "gen_random_uuid()" },
+        { "name": "access_id", "type": "UUID", "foreign": { "table": "document_access", "field": "id" }, "nullable": true },
+        { "name": "user_id", "type": "UUID", "foreign": { "table": "users", "field": "id" }, "nullable": false },
+        { "name": "document_id", "type": "UUID", "foreign": { "table": "documents", "field": "id" }, "nullable": false },
+        { "name": "action", "type": "ENUM", "enum_values": ["view", "download", "print", "share", "comment", "rate"], "nullable": false },
+        { "name": "timestamp", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" },
+        { "name": "ip_address", "type": "VARCHAR", "nullable": true },
+        { "name": "user_agent", "type": "VARCHAR", "nullable": true },
+        { "name": "session_id", "type": "UUID", "foreign": { "table": "user_sessions", "field": "id" }, "nullable": true }
+      ],
+      "indexes": [
+        { "name": "idx_access_logs_user", "fields": ["user_id"] },
+        { "name": "idx_access_logs_document", "fields": ["document_id"] },
+        { "name": "idx_access_logs_timestamp", "fields": ["timestamp"] },
+        { "name": "idx_access_logs_user_document", "fields": ["user_id", "document_id"] }
+      ]
+    },
+    {
+      "table": "comments",
+      "fields": [
+        { "name": "id", "type": "UUID", "primary": true, "index": true, "default": "gen_random_uuid()" },
+        { "name": "document_id", "type": "UUID", "foreign": { "table": "documents", "field": "id" }, "nullable": false },
+        { "name": "user_id", "type": "UUID", "foreign": { "table": "users", "field": "id" }, "nullable": false },
+        { "name": "parent_id", "type": "UUID", "foreign": { "table": "comments", "field": "id" }, "nullable": true },
+        { "name": "content", "type": "TEXT", "nullable": false },
+        { "name": "status", "type": "ENUM", "enum_values": ["active", "hidden", "deleted"], "default": "active" },
+        { "name": "is_edited", "type": "BOOLEAN", "default": false },
+        { "name": "created_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" },
+        { "name": "updated_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP", "on_update": "CURRENT_TIMESTAMP" }
+      ],
+      "constraints": [
+        { "type": "CHECK", "name": "check_comment_content", "condition": "length(content) > 0" }
+      ]
+    },
+    {
+      "table": "ratings",
+      "fields": [
+        { "name": "id", "type": "UUID", "primary": true, "index": true, "default": "gen_random_uuid()" },
+        { "name": "document_id", "type": "UUID", "foreign": { "table": "documents", "field": "id" }, "nullable": false },
+        { "name": "user_id", "type": "UUID", "foreign": { "table": "users", "field": "id" }, "nullable": false },
+        { "name": "rating", "type": "INTEGER", "nullable": false },
+        { "name": "comment", "type": "TEXT", "nullable": true },
+        { "name": "created_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" },
+        { "name": "updated_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP", "on_update": "CURRENT_TIMESTAMP" }
+      ],
+      "constraints": [
+        { "type": "UNIQUE", "name": "uq_document_user_rating", "fields": ["document_id", "user_id"] },
+        { "type": "CHECK", "name": "check_rating_range", "condition": "rating >= 1 AND rating <= 5" }
+      ]
+    },
+    {
+      "table": "favorites",
+      "fields": [
+        { "name": "id", "type": "UUID", "primary": true, "index": true, "default": "gen_random_uuid()" },
+        { "name": "user_id", "type": "UUID", "foreign": { "table": "users", "field": "id" }, "nullable": false },
+        { "name": "document_id", "type": "UUID", "foreign": { "table": "documents", "field": "id" }, "nullable": false },
+        { "name": "created_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" }
+      ],
+      "constraints": [
+        { "type": "UNIQUE", "name": "uq_user_document_favorite", "fields": ["user_id", "document_id"] }
+      ]
+    },
+    {
+      "table": "user_sessions",
+      "fields": [
+        { "name": "id", "type": "UUID", "primary": true, "index": true, "default": "gen_random_uuid()" },
+        { "name": "user_id", "type": "UUID", "foreign": { "table": "users", "field": "id" }, "nullable": false },
+        { "name": "token", "type": "VARCHAR", "unique": true, "nullable": false },
+        { "name": "ip_address", "type": "VARCHAR", "nullable": true },
+        { "name": "user_agent", "type": "VARCHAR", "nullable": true },
+        { "name": "created_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" },
+        { "name": "expires_at", "type": "TIMESTAMP", "nullable": false }
+      ]
+    },
+    {
+      "table": "notifications",
+      "fields": [
+        { "name": "id", "type": "UUID", "primary": true, "index": true, "default": "gen_random_uuid()" },
+        { "name": "user_id", "type": "UUID", "foreign": { "table": "users", "field": "id" }, "nullable": false },
+        { "name": "type", "type": "ENUM", "enum_values": ["system", "comment", "rating", "document", "access"], "nullable": false },
+        { "name": "content", "type": "TEXT", "nullable": false },
+        { "name": "related_id", "type": "UUID", "nullable": true },
+        { "name": "related_type", "type": "ENUM", "enum_values": ["comment", "document", "rating", "access", "system", "feedback"], "nullable": true },
+        { "name": "is_read", "type": "BOOLEAN", "default": false },
+        { "name": "created_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" }
+      ]
+    },
+    {
+      "table": "slideshows",
+      "fields": [
+        { "name": "id", "type": "UUID", "primary": true, "index": true, "default": "gen_random_uuid()" },
+        { "name": "title", "type": "VARCHAR", "nullable": false },
+        { "name": "description", "type": "TEXT", "nullable": true },
+        { "name": "image_url", "type": "VARCHAR", "nullable": false },
+        { "name": "link_url", "type": "VARCHAR", "nullable": true },
+        { "name": "display_order", "type": "INTEGER", "default": 0 },
+        { "name": "status", "type": "ENUM", "enum_values": ["active", "inactive"], "default": "active" },
+        { "name": "created_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" },
+        { "name": "updated_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP", "on_update": "CURRENT_TIMESTAMP" }
+      ],
+      "constraints": [
+        { "type": "CHECK", "name": "check_display_order", "condition": "display_order >= 0" }
+      ]
+    },
+    {
+      "table": "website_links",
+      "fields": [
+        { "name": "id", "type": "UUID", "primary": true, "index": true, "default": "gen_random_uuid()" },
+        { "name": "title", "type": "VARCHAR", "nullable": false },
+        { "name": "url", "type": "VARCHAR", "nullable": false },
+        { "name": "description", "type": "TEXT", "nullable": true },
+        { "name": "position", "type": "ENUM", "enum_values": ["header", "footer", "sidebar", "main_menu", "quick_links"], "nullable": false },
+        { "name": "display_order", "type": "INTEGER", "default": 0 },
+        { "name": "status", "type": "ENUM", "enum_values": ["active", "inactive"], "default": "active" },
+        { "name": "created_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" },
+        { "name": "updated_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP", "on_update": "CURRENT_TIMESTAMP" }
+      ],
+      "constraints": [
+        { "type": "CHECK", "name": "check_display_order", "condition": "display_order >= 0" },
+        { "type": "CHECK", "name": "check_url_format", "condition": "url ~ '^https?://[\\w\\-]+(\\.[\\w\\-]+)+([\\w\\-.,@?^=%&:/~+#]*[\\w\\-@?^=%&/~+#])?$'" }
+      ]
+    },
+    {
+      "table": "system_settings",
+      "fields": [
+        { "name": "id", "type": "UUID", "primary": true, "index": true, "default": "gen_random_uuid()" },
+        { "name": "key", "type": "VARCHAR", "unique": true, "nullable": false },
+        { "name": "value", "type": "TEXT", "nullable": false },
+        { "name": "description", "type": "TEXT", "nullable": true },
+        { "name": "type", "type": "ENUM", "enum_values": ["string", "integer", "boolean", "json", "array", "float"], "default": "string" },
+        { "name": "created_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" },
+        { "name": "updated_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP", "on_update": "CURRENT_TIMESTAMP" }
+      ],
+      "constraints": [
+        { "type": "CHECK", "name": "check_setting_key", "condition": "length(key) > 0" },
+        { "type": "CHECK", "name": "check_setting_value", "condition": "length(value) > 0" }
+      ]
+    },
+    {
+      "table": "feedback",
+      "fields": [
+        { "name": "id", "type": "UUID", "primary": true, "index": true, "default": "gen_random_uuid()" },
+        { "name": "user_id", "type": "UUID", "foreign": { "table": "users", "field": "id" }, "nullable": true },
+        { "name": "name", "type": "VARCHAR", "nullable": false },
+        { "name": "email", "type": "VARCHAR", "nullable": false },
+        { "name": "subject", "type": "VARCHAR", "nullable": false },
+        { "name": "message", "type": "TEXT", "nullable": false },
+        { "name": "status", "type": "ENUM", "enum_values": ["pending", "in_progress", "resolved", "closed"], "default": "pending" },
+        { "name": "response", "type": "TEXT", "nullable": true },
+        { "name": "created_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" },
+        { "name": "updated_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP", "on_update": "CURRENT_TIMESTAMP" }
+      ],
+      "constraints": [
+        { "type": "CHECK", "name": "check_feedback_email", "condition": "email ~ '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$'" },
+        { "type": "CHECK", "name": "check_feedback_message", "condition": "length(message) > 0" }
+      ]
+    },
+    {
+      "table": "file_types",
+      "fields": [
+        { "name": "id", "type": "UUID", "primary": true, "index": true, "default": "gen_random_uuid()" },
+        { "name": "extension", "type": "VARCHAR", "unique": true, "nullable": false },
+        { "name": "mime_type", "type": "VARCHAR", "nullable": false },
+        { "name": "description", "type": "TEXT", "nullable": true },
+        { "name": "is_allowed", "type": "BOOLEAN", "default": true },
+        { "name": "max_size_mb", "type": "INTEGER", "nullable": true },
+        { "name": "created_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" },
+        { "name": "updated_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP", "on_update": "CURRENT_TIMESTAMP" }
+      ],
+      "constraints": [
+        { "type": "CHECK", "name": "check_extension", "condition": "extension ~ '^[a-zA-Z0-9]+$'" },
+        { "type": "CHECK", "name": "check_max_size", "condition": "max_size_mb IS NULL OR max_size_mb > 0" }
+      ]
+    },
+    {
+      "table": "languages",
+      "fields": [
+        { "name": "code", "type": "VARCHAR", "primary": true },
+        { "name": "name", "type": "VARCHAR", "nullable": false },
+        { "name": "native_name", "type": "VARCHAR", "nullable": true },
+        { "name": "is_active", "type": "BOOLEAN", "default": true },
+        { "name": "created_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" },
+        { "name": "updated_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP", "on_update": "CURRENT_TIMESTAMP" }
+      ],
+      "constraints": [
+        { "type": "CHECK", "name": "check_language_code", "condition": "code ~ '^[a-z]{2}$'" }
+      ]
+    },
+    {
+      "table": "document_chapters",
+      "fields": [
+        { "name": "id", "type": "UUID", "primary": true, "index": true, "default": "gen_random_uuid()" },
+        { "name": "document_id", "type": "UUID", "foreign": { "table": "documents", "field": "id" }, "nullable": false },
+        { "name": "title", "type": "VARCHAR", "nullable": false },
+        { "name": "chapter_number", "type": "INTEGER", "nullable": false },
+        { "name": "start_position", "type": "FLOAT", "nullable": true, "comment": "Starting position (e.g., percentage or page)" },
+        { "name": "end_position", "type": "FLOAT", "nullable": true, "comment": "Ending position" },
+        { "name": "ai_summary", "type": "TEXT", "nullable": true, "comment": "AI-generated chapter summary" },
+        { "name": "created_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" },
+        { "name": "updated_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP", "on_update": "CURRENT_TIMESTAMP" }
+      ],
+      "constraints": [
+        { "type": "UNIQUE", "name": "uq_document_chapter_number", "fields": ["document_id", "chapter_number"] },
+        { "type": "CHECK", "name": "check_chapter_number", "condition": "chapter_number > 0" },
+        { "type": "CHECK", "name": "check_chapter_positions", "condition": "start_position IS NULL OR end_position IS NULL OR start_position < end_position" }
+      ],
+      "indexes": [
+        { "name": "idx_document_chapters_document", "fields": ["document_id"] },
+        { "name": "idx_document_chapters_number", "fields": ["document_id", "chapter_number"] }
+      ]
+    },
+    {
+      "table": "document_audio",
+      "fields": [
+        { "name": "id", "type": "UUID", "primary": true, "index": true, "default": "gen_random_uuid()" },
+        { "name": "document_id", "type": "UUID", "foreign": { "table": "documents", "field": "id" }, "nullable": false },
+        { "name": "chapter_id", "type": "UUID", "foreign": { "table": "document_chapters", "field": "id" }, "nullable": true },
+        { "name": "section_id", "type": "UUID", "foreign": { "table": "document_sections", "field": "id" }, "nullable": true },
+        { "name": "language", "type": "VARCHAR", "foreign": { "table": "languages", "field": "code" }, "nullable": false },
+        { "name": "voice_id", "type": "VARCHAR", "foreign": { "table": "voices", "field": "id" }, "nullable": false },
+        { "name": "file_url", "type": "VARCHAR", "nullable": false },
+        { "name": "duration_seconds", "type": "INTEGER", "nullable": false },
+        { "name": "file_size", "type": "INTEGER", "nullable": false },
+        { "name": "status", "type": "ENUM", "enum_values": ["pending", "processing", "completed", "failed"], "default": "pending" },
+        { "name": "created_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" },
+        { "name": "updated_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP", "on_update": "CURRENT_TIMESTAMP" }
+      ],
+      "constraints": [
+        { "type": "CHECK", "name": "check_audio_duration", "condition": "duration_seconds > 0" },
+        { "type": "CHECK", "name": "check_audio_size", "condition": "file_size > 0" },
+        { "type": "CHECK", "name": "check_audio_context", "condition": "chapter_id IS NOT NULL OR section_id IS NOT NULL" }
+      ],
+      "indexes": [
+        { "name": "idx_document_audio_document", "fields": ["document_id"] },
+        { "name": "idx_document_audio_chapter", "fields": ["chapter_id"] },
+        { "name": "idx_document_audio_section", "fields": ["section_id"] },
+        { "name": "idx_document_audio_language", "fields": ["language"] },
+        { "name": "idx_document_audio_doc_chapter_section", "fields": ["document_id", "chapter_id", "section_id"] }
+      ]
+    },
+    {
+      "table": "document_qa",
+      "fields": [
+        { "name": "id", "type": "UUID", "primary": true, "index": true, "default": "gen_random_uuid()" },
+        { "name": "document_id", "type": "UUID", "foreign": { "table": "documents", "field": "id" }, "nullable": false },
+        { "name": "chapter_id", "type": "UUID", "foreign": { "table": "document_chapters", "field": "id" }, "nullable": true },
+        { "name": "section_id", "type": "UUID", "foreign": { "table": "document_sections", "field": "id" }, "nullable": true },
+        { "name": "question", "type": "TEXT", "nullable": false },
+        { "name": "answer", "type": "TEXT", "nullable": false },
+        { "name": "context", "type": "TEXT", "nullable": true },
+        { "name": "language", "type": "VARCHAR", "foreign": { "table": "languages", "field": "code" }, "nullable": false },
+        { "name": "usage_count", "type": "INTEGER", "default": 0 },
+        { "name": "last_used", "type": "TIMESTAMP", "nullable": true },
+        { "name": "created_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" },
+        { "name": "updated_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP", "on_update": "CURRENT_TIMESTAMP" }
+      ],
+      "constraints": [
+        { "type": "CHECK", "name": "check_qa_content", "condition": "length(question) > 0 AND length(answer) > 0" },
+        { "type": "CHECK", "name": "check_qa_context", "condition": "(chapter_id IS NULL AND section_id IS NULL) OR context IS NOT NULL" }
+      ],
+      "indexes": [
+        { "name": "idx_document_qa_document", "fields": ["document_id"] },
+        { "name": "idx_document_qa_chapter", "fields": ["chapter_id"] },
+        { "name": "idx_document_qa_section", "fields": ["section_id"] },
+        { "name": "idx_document_qa_language", "fields": ["language"] },
+        { "name": "idx_document_qa_doc_language", "fields": ["document_id", "language"] }
+      ]
+    },
+    {
+      "table": "static_pages",
+      "fields": [
+        { "name": "id", "type": "UUID", "primary": true, "index": true, "default": "gen_random_uuid()" },
+        { "name": "slug", "type": "VARCHAR", "unique": true, "nullable": false },
+        { "name": "title", "type": "VARCHAR", "nullable": false },
+        { "name": "content", "type": "TEXT", "nullable": false },
+        { "name": "meta_description", "type": "TEXT", "nullable": true },
+        { "name": "meta_keywords", "type": "VARCHAR", "nullable": true },
+        { "name": "status", "type": "ENUM", "enum_values": ["draft", "published", "archived"], "default": "draft" },
+        { "name": "created_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" },
+        { "name": "updated_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP", "on_update": "CURRENT_TIMESTAMP" }
+      ],
+      "constraints": [
+        { "type": "CHECK", "name": "check_page_slug", "condition": "slug ~ '^[a-z0-9-]+$'" },
+        { "type": "CHECK", "name": "check_page_content", "condition": "length(content) > 0" },
+        { "type": "CHECK", "name": "check_meta_keywords", "condition": "meta_keywords IS NULL OR meta_keywords ~ '^[a-zA-Z0-9,\\s-]+$'" },
+        { "type": "CHECK", "name": "check_meta_description_length", "condition": "meta_description IS NULL OR length(meta_description) <= 160" }
+      ],
+      "indexes": [
+        { "name": "idx_static_pages_slug", "fields": ["slug"] },
+        { "name": "idx_static_pages_status", "fields": ["status"] }
+      ]
+    },
+    {
+      "table": "reading_progress",
+      "fields": [
+        { "name": "id", "type": "UUID", "primary": true, "index": true, "default": "gen_random_uuid()" },
+        { "name": "user_id", "type": "UUID", "foreign": { "table": "users", "field": "id" }, "nullable": false },
+        { "name": "document_id", "type": "UUID", "foreign": { "table": "documents", "field": "id" }, "nullable": false },
+        { "name": "chapter_id", "type": "UUID", "foreign": { "table": "document_chapters", "field": "id" }, "nullable": true },
+        { "name": "progress_type", "type": "ENUM", "enum_values": ["page", "percentage", "position", "time", "section"], "default": "percentage" },
+        { "name": "progress_value", "type": "FLOAT", "nullable": false },
+        { "name": "status", "type": "ENUM", "enum_values": ["reading", "completed", "paused"], "default": "reading" },
+        { "name": "last_read_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" },
+        { "name": "total_read_time", "type": "INTEGER", "default": 0, "comment": "Total reading time in seconds" },
+        { "name": "session_read_time", "type": "INTEGER", "default": 0, "comment": "Reading time for current session in seconds" },
+        { "name": "last_position", "type": "JSONB", "nullable": true, "comment": "Additional position data like scroll position, zoom level, etc." },
+        { "name": "device_id", "type": "VARCHAR", "nullable": true, "comment": "Identifier for the device updating progress" },
+        { "name": "session_id", "type": "UUID", "foreign": { "table": "user_sessions", "field": "id" }, "nullable": true },
+        { "name": "synced_at", "type": "TIMESTAMP", "nullable": true, "comment": "Last sync time for offline progress" },
+        { "name": "ai_recommendation_trigger", "type": "BOOLEAN", "default": false, "comment": "Flag for AI recommendation triggers" },
+        { "name": "section_id", "type": "UUID", "foreign": { "table": "document_sections", "field": "id" }, "nullable": true },
+        { "name": "conflict_resolution", "type": "ENUM", "enum_values": ["latest", "merge", "manual"], "default": "latest" },
+        { "name": "last_sync_device", "type": "VARCHAR", "nullable": true },
+        { "name": "sync_version", "type": "INTEGER", "default": 1 },
+        { "name": "created_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" },
+        { "name": "updated_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP", "on_update": "CURRENT_TIMESTAMP" },
+        { "name": "conflict_status", "type": "ENUM", "enum_values": ["pending", "resolved"], "nullable": true },
+        { "name": "merged_progress", "type": "JSONB", "nullable": true, "comment": "Stores progress data from other devices when merging" }
+      ],
+      "constraints": [
+        { "type": "UNIQUE", "name": "uq_user_document_chapter_section_progress", "fields": ["user_id", "document_id", "chapter_id", "section_id"] },
+        { "type": "CHECK", "name": "check_progress_value_percentage", "condition": "(progress_type = 'percentage' AND progress_value >= 0 AND progress_value <= 100) OR progress_type != 'percentage'" },
+        { "type": "CHECK", "name": "check_progress_value_page", "condition": "(progress_type = 'page' AND progress_value >= 0 AND progress_value = FLOOR(progress_value)) OR progress_type != 'page'" },
+        { "type": "CHECK", "name": "check_progress_value_position", "condition": "(progress_type = 'position' AND progress_value >= 0) OR progress_type != 'position'" },
+        { "type": "CHECK", "name": "check_progress_value_time", "condition": "(progress_type = 'time' AND progress_value >= 0) OR progress_type != 'time'" },
+        { "type": "CHECK", "name": "check_total_read_time", "condition": "total_read_time >= 0" },
+        { "type": "CHECK", "name": "check_session_read_time", "condition": "session_read_time >= 0" },
+        { "type": "CHECK", "name": "check_last_position", "condition": "last_position IS NULL OR last_position::text != '{}'" },
+        { "type": "CHECK", "name": "check_sync_version", "condition": "sync_version > 0" },
+        { "type": "CHECK", "name": "check_conflict_status", "condition": "(conflict_resolution = 'manual' AND conflict_status IS NOT NULL) OR conflict_resolution != 'manual'" }
+      ],
+      "indexes": [
+        { "name": "idx_reading_progress_user", "fields": ["user_id"] },
+        { "name": "idx_reading_progress_document", "fields": ["document_id"] },
+        { "name": "idx_reading_progress_last_read", "fields": ["last_read_at"] },
+        { "name": "idx_reading_progress_user_last_read", "fields": ["user_id", "last_read_at"] },
+        { "name": "idx_reading_progress_document_chapter", "fields": ["document_id", "chapter_id"] },
+        { "name": "idx_reading_progress_sync", "fields": ["synced_at"] },
+        { "name": "idx_reading_progress_section", "fields": ["section_id"] },
+        { "name": "idx_reading_progress_sync_version", "fields": ["sync_version"] },
+        { "name": "idx_reading_progress_user_document_section", "fields": ["user_id", "document_id", "section_id"] },
+        { "name": "idx_reading_progress_conflict", "fields": ["conflict_status"] }
+      ]
+    },
+    {
+      "table": "document_sections",
+      "fields": [
+        { "name": "id", "type": "UUID", "primary": true, "index": true, "default": "gen_random_uuid()" },
+        { "name": "document_id", "type": "UUID", "foreign": { "table": "documents", "field": "id" }, "nullable": false },
+        { "name": "chapter_id", "type": "UUID", "foreign": { "table": "document_chapters", "field": "id" }, "nullable": true },
+        { "name": "title", "type": "VARCHAR", "nullable": false },
+        { "name": "section_number", "type": "INTEGER", "nullable": false },
+        { "name": "start_position", "type": "FLOAT", "nullable": true },
+        { "name": "end_position", "type": "FLOAT", "nullable": true },
+        { "name": "created_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" },
+        { "name": "updated_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP", "on_update": "CURRENT_TIMESTAMP" }
+      ],
+      "constraints": [
+        { "type": "UNIQUE", "name": "uq_document_section_number", "fields": ["document_id", "chapter_id", "section_number"] },
+        { "type": "CHECK", "name": "check_section_number", "condition": "section_number > 0" },
+        { "type": "CHECK", "name": "check_section_positions", "condition": "start_position IS NULL OR end_position IS NULL OR start_position < end_position" }
+      ],
+      "indexes": [
+        { "name": "idx_document_sections_document", "fields": ["document_id"] },
+        { "name": "idx_document_sections_chapter", "fields": ["chapter_id"] }
+      ]
+    },
+    {
+      "table": "voices",
+      "fields": [
+        { "name": "id", "type": "VARCHAR", "primary": true },
+        { "name": "name", "type": "VARCHAR", "nullable": false },
+        { "name": "language", "type": "VARCHAR", "foreign": { "table": "languages", "field": "code" }, "nullable": false },
+        { "name": "gender", "type": "ENUM", "enum_values": ["male", "female", "neutral"], "nullable": true },
+        { "name": "provider", "type": "VARCHAR", "nullable": false },
+        { "name": "is_active", "type": "BOOLEAN", "default": true },
+        { "name": "created_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" },
+        { "name": "updated_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP", "on_update": "CURRENT_TIMESTAMP" }
+      ],
+      "constraints": [
+        { "type": "CHECK", "name": "check_voice_id", "condition": "id ~ '^[a-zA-Z0-9_-]+$'" }
+      ],
+      "indexes": [
+        { "name": "idx_voices_language", "fields": ["language"] },
+        { "name": "idx_voices_provider", "fields": ["provider"] }
+      ]
+    }
+  ]
+  

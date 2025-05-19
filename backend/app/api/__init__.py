@@ -12,7 +12,9 @@ from . import (
     sessions,
     access,
     health,
-    search
+    search,
+    ratings,
+    comments
 )
 
 # Define router configurations
@@ -28,7 +30,9 @@ ROUTER_CONFIGS = {
     "access": {"prefix": "/access", "tags": ["access"]},
     "health": {"prefix": "/health", "tags": ["health"]},
     "sessions": {"prefix": "/sessions", "tags": ["sessions"]},
-    "publishers": {"prefix": "/publishers", "tags": ["publishers"]}
+    "publishers": {"prefix": "/publishers", "tags": ["publishers"]},
+    "ratings": {"prefix": "/ratings", "tags": ["ratings"]},
+    "comments": {"prefix": "/comments", "tags": ["comments"]}
 }
 
 router = APIRouter()
@@ -47,3 +51,5 @@ router.include_router(sessions.router, **ROUTER_CONFIGS["sessions"])
 router.include_router(access.router, **ROUTER_CONFIGS["access"])
 router.include_router(health.router, **ROUTER_CONFIGS["health"])
 router.include_router(search.router, **ROUTER_CONFIGS["search"])
+router.include_router(ratings.router, **ROUTER_CONFIGS["ratings"])
+router.include_router(comments.router, **ROUTER_CONFIGS["comments"])

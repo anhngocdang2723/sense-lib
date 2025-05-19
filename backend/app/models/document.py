@@ -3,10 +3,13 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
 from .base import BaseModel
 from .enums import DocumentStatus, DocumentAccessLevel
+from datetime import datetime
+import uuid
 
 class Document(BaseModel):
     __tablename__ = "documents"
 
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     title = Column(String, nullable=False, index=True)
     slug = Column(String, unique=True, nullable=False, index=True)
     description = Column(Text, nullable=True)
@@ -28,6 +31,19 @@ class Document(BaseModel):
     ai_summary = Column(Text, nullable=True)
     added_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     image_url = Column(String, nullable=True)
+    
+    # Thêm cột score
+    score = Column(Integer, default=0)
+
+    # Thêm cột created_at và updated_at
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, onupdate=datetime.utcnow)
+
+    # Thêm cột expires_at
+    expires_at = Column(DateTime, nullable=True)  # For temporary documents
+
+    # Thêm cột proposed_score
+    proposed_score = Column(Integer)
 
     # Relationships
     added_by_user = relationship("User", foreign_keys=[added_by], back_populates="documents")
@@ -60,4 +76,5 @@ class Document(BaseModel):
         CheckConstraint("isbn IS NULL OR (isbn ~ '^(?:[0-9]{10}|[0-9]{13}|[0-9]{3}-[0-9]{1,5}-[0-9]{1,7}-[0-9]{1,6}-[0-9])$')", name='check_isbn'),
         CheckConstraint("version ~ '^[0-9]+\\.[0-9]+(\\.[0-9]+)?$'", name='check_version_format'),
         CheckConstraint('length(slug) >= 2', name='check_slug_length'),
-    ) 
+        CheckConstraint('score >= 0', name='check_score_non_negative'),
+    )

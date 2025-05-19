@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query, Path, BackgroundTasks, Form
 from typing import List, Any, Optional
 from uuid import UUID
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 import hashlib
 import logging
@@ -612,4 +612,222 @@ async def get_document_by_slug(
         authors=[AuthorResponse.from_orm(a) for a in getattr(document, 'authors', [])],
         tags=[TagResponse.from_orm(t) for t in getattr(document, 'tags', [])],
         audio_files=[DocumentAudioBase.from_orm(a) for a in getattr(document, 'audio_files', [])],
-    ) 
+    )
+
+@router.post("/user/upload", response_model=DocumentResponse)
+async def user_upload_document(
+    title: str = Form(...),
+    description: Optional[str] = Form(None),
+    category_id: UUID = Form(...),
+    file: UploadFile = File(...),
+    image: Optional[UploadFile] = File(None),
+    proposed_score: int = Form(..., ge=1, le=5),  # Add proposed score field
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Upload a new document by regular user (requires admin approval)"""
+    logger.info(f"Starting user document upload process for file: {file.filename}")
+    
+    try:
+        # Generate slug from title
+        base_slug = SlugService.convert_to_slug(title)
+        slug = SlugService.generate_unique_slug(db, Document, base_slug)
+
+        # Calculate file hash
+        file_content = await file.read()
+        file_hash = hashlib.md5(file_content).hexdigest()
+
+        # Check if file already exists
+        existing_doc = db.query(Document).filter(Document.file_hash == file_hash).first()
+        if existing_doc:
+            raise HTTPException(
+                status_code=400,
+                detail="A document with this file already exists"
+            )
+
+        # Get file type
+        file_type = db.query(FileType).filter(FileType.extension == file.filename.split('.')[-1].lower()).first()
+        if not file_type:
+            raise HTTPException(
+                status_code=400,
+                detail="Unsupported file type"
+            )
+
+        # Set expiration time to 24 hours from now
+        expires_at = datetime.utcnow() + timedelta(hours=24)
+
+        # Create document with PENDING status
+        document = Document(
+            title=title,
+            description=description,
+            category_id=category_id,
+            language="en",  # Default language
+            access_level=DocumentAccessLevel.PUBLIC,  # Default access level
+            version="1.0",  # Default version
+            status=DocumentStatus.PENDING,
+            slug=slug,
+            proposed_score=proposed_score,  # Store proposed score
+            added_by=current_user.id,
+            file_name=file.filename,
+            file_size=len(file_content),
+            file_type=file_type.id,
+            file_hash=file_hash,
+            expires_at=expires_at  # Set expiration time
+        )
+        
+        # Save file temporarily
+        file_location = os.path.join(settings.UPLOAD_DIR, "pending", str(document.id))
+        os.makedirs(os.path.dirname(file_location), exist_ok=True)
+        
+        with open(file_location, "wb+") as file_object:
+            file_object.write(file_content)
+        
+        # Save image if provided
+        if image:
+            image_content = await image.read()
+            image_location = os.path.join(settings.UPLOAD_DIR, "pending", "images", str(document.id))
+            os.makedirs(os.path.dirname(image_location), exist_ok=True)
+            
+            with open(image_location, "wb+") as image_object:
+                image_object.write(image_content)
+            document.image_url = f"/pending/images/{document.id}"
+        
+        db.add(document)
+        db.commit()
+        db.refresh(document)
+        
+        return DocumentResponse(
+            **document.__dict__,
+            authors=[AuthorResponse.from_orm(a) for a in getattr(document, 'authors', [])],
+            tags=[TagResponse.from_orm(t) for t in getattr(document, 'tags', [])],
+        )
+        
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.error(f"Error in user document upload: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to upload document: {str(e)}"
+        )
+
+@router.put("/{document_id}/approve", response_model=DocumentResponse)
+async def approve_document(
+    document_id: UUID = Path(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+) -> DocumentResponse:
+    """Approve a user-uploaded document (admin only)"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=403,
+            detail="Not authorized to approve documents"
+        )
+    
+    document = db.query(Document).filter(Document.id == document_id).first()
+    if not document:
+        raise HTTPException(
+            status_code=404,
+            detail="Document not found"
+        )
+    
+    if document.status != DocumentStatus.PENDING:
+        raise HTTPException(
+            status_code=400,
+            detail="Document is not pending approval"
+        )
+    
+    try:
+        # Move file from pending to final location
+        pending_file = os.path.join(settings.UPLOAD_DIR, "pending", str(document.id))
+        final_file = os.path.join(settings.UPLOAD_DIR, str(document.id))
+        os.makedirs(os.path.dirname(final_file), exist_ok=True)
+        os.rename(pending_file, final_file)
+        
+        # Move image if exists
+        if document.image_url:
+            pending_image = os.path.join(settings.UPLOAD_DIR, "pending", "images", str(document.id))
+            final_image = os.path.join(settings.UPLOAD_DIR, "images", str(document.id))
+            os.makedirs(os.path.dirname(final_image), exist_ok=True)
+            os.rename(pending_image, final_image)
+            document.image_url = f"/images/{document.id}"
+        
+        # Update document status
+        document.status = DocumentStatus.AVAILABLE
+        
+        # Add points to user's score based on proposed score
+        user = db.query(User).filter(User.id == document.added_by).first()
+        if user:
+            user.score += document.proposed_score  # Add points based on proposed score
+            document.score = document.proposed_score  # Set document score
+        
+        db.commit()
+        db.refresh(document)
+        
+        return DocumentResponse(
+            **document.__dict__,
+            authors=[AuthorResponse.from_orm(a) for a in getattr(document, 'authors', [])],
+            tags=[TagResponse.from_orm(t) for t in getattr(document, 'tags', [])],
+        )
+        
+    except Exception as e:
+        logger.error(f"Error in document approval: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to approve document: {str(e)}"
+        )
+
+@router.put("/{document_id}/reject", response_model=DocumentResponse)
+async def reject_document(
+    document_id: UUID = Path(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+) -> DocumentResponse:
+    """Reject a user-uploaded document (admin only)"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=403,
+            detail="Not authorized to reject documents"
+        )
+    
+    document = db.query(Document).filter(Document.id == document_id).first()
+    if not document:
+        raise HTTPException(
+            status_code=404,
+            detail="Document not found"
+        )
+    
+    if document.status != DocumentStatus.PENDING:
+        raise HTTPException(
+            status_code=400,
+            detail="Document is not pending approval"
+        )
+    
+    try:
+        # Delete pending files
+        pending_file = os.path.join(settings.UPLOAD_DIR, "pending", str(document.id))
+        if os.path.exists(pending_file):
+            os.remove(pending_file)
+            
+        if document.image_url:
+            pending_image = os.path.join(settings.UPLOAD_DIR, "pending", "images", str(document.id))
+            if os.path.exists(pending_image):
+                os.remove(pending_image)
+        
+        # Update document status
+        document.status = DocumentStatus.REJECTED
+        db.commit()
+        db.refresh(document)
+        
+        return DocumentResponse(
+            **document.__dict__,
+            authors=[AuthorResponse.from_orm(a) for a in getattr(document, 'authors', [])],
+            tags=[TagResponse.from_orm(t) for t in getattr(document, 'tags', [])],
+        )
+        
+    except Exception as e:
+        logger.error(f"Error in document rejection: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to reject document: {str(e)}"
+        ) 

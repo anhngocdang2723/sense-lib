@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Modal, Form, Input, Select, message, Space, Popconfirm, Tag, Tooltip, Switch, Spin, Card } from 'antd';
-import { EditOutlined, DeleteOutlined, UserOutlined, MailOutlined, PhoneOutlined, LockOutlined, UnlockOutlined, SearchOutlined, PlusOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import { EditOutlined, DeleteOutlined, UserOutlined, MailOutlined, PhoneOutlined, LockOutlined, UnlockOutlined, SearchOutlined, PlusOutlined, CheckCircleOutlined, TrophyOutlined } from '@ant-design/icons';
 import api, { endpoints } from '../../api/api';
 import './AdminUsers.css';
 import dayjs from 'dayjs';
@@ -62,7 +62,8 @@ const AdminUsers = () => {
       phone_number: record.phone_number,
       address: record.address,
       role: record.role,
-      is_active: record.is_active
+      is_active: record.is_active,
+      score: record.score
     });
     setModalVisible(true);
   };
@@ -303,6 +304,17 @@ const AdminUsers = () => {
       )
     },
     {
+      title: 'Điểm',
+      dataIndex: 'score',
+      key: 'score',
+      width: 100,
+      sorter: (a, b) => a.score - b.score,
+      sortDirections: ['ascend', 'descend'],
+      render: (score) => (
+        <Tag color="blue">{score || 0}</Tag>
+      )
+    },
+    {
       title: 'Ngày tạo',
       dataIndex: 'created_at',
       key: 'created_at',
@@ -349,6 +361,12 @@ const AdminUsers = () => {
       value: stats.verified,
       icon: <CheckCircleOutlined />,
       color: '#1890ff'
+    },
+    {
+      title: 'Điểm trung bình',
+      value: users.length > 0 ? Math.round(users.reduce((acc, user) => acc + (user.score || 0), 0) / users.length) : 0,
+      icon: <TrophyOutlined />,
+      color: '#faad14'
     }
   ];
 
@@ -459,6 +477,14 @@ const AdminUsers = () => {
             label="Địa chỉ"
           >
             <TextArea rows={3} />
+          </Form.Item>
+
+          <Form.Item
+            name="score"
+            label="Điểm"
+            rules={[{ type: 'number', message: 'Điểm phải là số' }]}
+          >
+            <Input type="number" min={0} />
           </Form.Item>
 
           <Form.Item

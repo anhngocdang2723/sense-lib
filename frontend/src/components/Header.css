@@ -19,6 +19,13 @@
   min-width: 220px;
 }
 
+.navbar-left a {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  color: inherit;
+}
+
 .logo {
   height: 48px;
   margin-right: 12px;
@@ -236,5 +243,36 @@
   .nav-button, .login-button {
     width: 100%;
     justify-content: center;
+  }
+}
+
+/* User Avatar Dropdown Styles */
+.user-avatar-dropdown {
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
+}
+
+.user-avatar-dropdown:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.user-avatar-dropdown .user-name {
+  margin-left: 8px;
+  font-size: 0.95rem;
+  color: #333;
+}
+
+/* Mobile Responsive Adjustments */
+@media (max-width: 768px) {
+  .user-avatar-dropdown {
+    width: 100%;
+    justify-content: center;
+    padding: 8px;
+  }
+
+  .user-avatar-dropdown .user-name {
+    display: inline-block;
   }
 } 
